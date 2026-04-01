@@ -31,6 +31,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const packages = mockPackages[id] ?? [];
 
+  // Organizer derived data
+  const organizerEvents = mockEvents.filter(
+    (e) => e.organizer === event.organizer && e.id !== event.id
+  );
+  const organizerInitials = event.organizer
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const handleSelectPackage = (pkg: TicketPackage, qty: number) => {
     setSelectedPackage({ pkg, qty });
     router.push(`/checkout?eventId=${event.id}&packageId=${pkg.id}&qty=${qty}`);
@@ -150,19 +161,80 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </TabsContent>
 
-              <TabsContent value="organizer">
-                <div className="flex items-center gap-4 p-5 rounded-xl bg-muted/30 border border-border/50">
-                  <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shrink-0">
-                    <Users className="w-6 h-6 text-white" />
+              <TabsContent value="organizer" className="space-y-5">
+                {/* Organizer profile card */}
+                <div className="p-5 rounded-xl border border-border bg-white">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                      <span className="text-white font-heading font-bold text-lg">{organizerInitials}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading font-bold text-lg text-foreground">{event.organizer}</h3>
+                      <p className="text-sm text-muted-foreground mb-3">Professional Event Organizer</p>
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Calendar className="w-3.5 h-3.5 text-primary" />
+                          <span>{mockEvents.filter((e) => e.organizer === event.organizer).length} events hosted</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                          <span>4.9 rating</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="w-3.5 h-3.5 text-secondary" />
+                          <span>10K+ attendees</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-heading font-semibold text-foreground">{event.organizer}</p>
-                    <p className="text-sm text-muted-foreground">Event Organizer</p>
-                    <Button variant="link" size="sm" className="p-0 h-auto text-primary mt-1">
-                      View profile →
+
+                  <Separator className="opacity-30 mb-4" />
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" className="gradient-primary border-0 text-white gap-2">
+                      <Users className="w-3.5 h-3.5" /> Follow Organizer
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-2 border-border/50">
+                      <Mail className="w-3.5 h-3.5" /> Contact
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-2 border-border/50">
+                      <Globe className="w-3.5 h-3.5" /> Website
                     </Button>
                   </div>
                 </div>
+
+                {/* More events by this organizer */}
+                {organizerEvents.length > 0 && (
+                  <div>
+                    <h4 className="font-heading font-semibold text-sm text-foreground mb-3">
+                      More events by {event.organizer}
+                    </h4>
+                    <div className="space-y-3">
+                      {organizerEvents.slice(0, 3).map((e) => (
+                        <Link
+                          key={e.id}
+                          href={`/events/${e.id}`}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-muted/20 transition-all group"
+                        >
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+                            <img src={e.image_url} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-foreground truncate">{e.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{formatDate(e.date)} · {e.venue}</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {organizerEvents.length === 0 && (
+                  <div className="text-center py-6 text-sm text-muted-foreground bg-muted/20 rounded-xl border border-border/50">
+                    No other events from this organizer right now.
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
