@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Calendar, Download, QrCode, Ticket, User,
-  LogOut, Settings, Clock, MapPin, ChevronRight
+  Settings, Clock, MapPin, ChevronRight, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,55 +14,51 @@ import Navbar from "@/components/layout/Navbar";
 import { mockEvents, mockPackages } from "@/lib/mock-data";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { signOut } from "@/lib/supabase/actions";
 
 export const metadata: Metadata = {
   title: "My Dashboard | Oryx Event",
 };
 
-// Mock purchased tickets for demo
-const mockPurchasedTickets = [
-  {
-    id: "order-1",
-    eventId: "1",
-    packageId: "pkg-1-vip",
-    qty: 2,
-    total: 90000,
-    status: "confirmed" as const,
-    date: "2026-01-15",
-    confirmationCode: "ORX-2024-001",
-  },
-  {
-    id: "order-2",
-    eventId: "3",
-    packageId: "pkg-3-regular",
-    qty: 1,
-    total: 25000,
-    status: "confirmed" as const,
-    date: "2026-01-20",
-    confirmationCode: "ORX-2024-002",
-  },
-];
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-export default function DashboardPage() {
-  const user = { name: "John Doe", email: "john@example.com", joinDate: "January 2026" };
+  if (!user) redirect("/auth/login");
 
-  const enrichedTickets = mockPurchasedTickets.map((order) => {
-    const event = mockEvents.find((e) => e.id === order.eventId);
-    const pkgs = mockPackages[order.eventId] ?? [];
-    const pkg = pkgs.find((p) => p.id === order.packageId);
-    return { ...order, event, pkg };
+  const fullName = (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "User";
+  const initials = fullName
+    .split(" ")
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const joinDate = new Date(user.created_at).toLocaleDateString("en-QA", {
+    month: "long",
+    year: "numeric",
   });
 
-  const upcoming = enrichedTickets.filter(
-    (t) => t.event && new Date(t.event.date) > new Date()
+  // Fetch real orders from Supabase
+  const { data: ordersData } = await supabase
+    .from("orders")
+    .select("*, ticket_package:ticket_packages(*), event:events(*)")
+    .eq("user_id", user.id)
+    .eq("status", "confirmed")
+    .order("created_at", { ascending: false });
+
+  const orders = ordersData ?? [];
+
+  const upcoming = orders.filter(
+    (o: any) => o.event && new Date(o.event.date) > new Date()
   );
-  const past = enrichedTickets.filter(
-    (t) => t.event && new Date(t.event.date) <= new Date()
+  const past = orders.filter(
+    (o: any) => o.event && new Date(o.event.date) <= new Date()
   );
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar user={user} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Sidebar */}
@@ -70,20 +67,20 @@ export default function DashboardPage() {
               <CardContent className="p-5 text-center">
                 <Avatar className="w-16 h-16 mx-auto mb-3 border-2 border-primary/30">
                   <AvatarFallback className="bg-primary/20 text-primary font-bold text-xl">
-                    {user.name.slice(0, 2).toUpperCase()}
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
-                <h2 className="font-heading font-semibold text-foreground">{user.name}</h2>
+                <h2 className="font-heading font-semibold text-foreground">{fullName}</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
-                <p className="text-xs text-muted-foreground mt-1">Member since {user.joinDate}</p>
+                <p className="text-xs text-muted-foreground mt-1">Member since {joinDate}</p>
               </CardContent>
             </Card>
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Tickets", value: enrichedTickets.length, icon: Ticket, color: "text-primary" },
-                { label: "Events", value: new Set(enrichedTickets.map((t) => t.eventId)).size, icon: Calendar, color: "text-secondary" },
+                { label: "Orders", value: orders.length, icon: Ticket, color: "text-primary" },
+                { label: "Events", value: new Set(orders.map((o: any) => o.event_id)).size, icon: Calendar, color: "text-secondary" },
               ].map(({ label, value, icon: Icon, color }) => (
                 <Card key={label} className="border-border/50">
                   <CardContent className="p-4 text-center">
@@ -112,9 +109,14 @@ export default function DashboardPage() {
                   </Link>
                 ))}
                 <Separator className="my-1 opacity-30" />
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all">
-                  <LogOut className="w-4 h-4" /> Sign out
-                </button>
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all"
+                  >
+                    <LogOut className="w-4 h-4" /> Sign out
+                  </button>
+                </form>
               </CardContent>
             </Card>
           </aside>
@@ -157,16 +159,15 @@ export default function DashboardPage() {
                         )}
                       </div>
                     ) : (
-                      tickets.map(({ id, event, pkg, qty, total, status, confirmationCode, date }) => (
-                        <Card key={id} className="border-border/50 hover:border-primary/30 transition-all">
+                      tickets.map((order: any) => (
+                        <Card key={order.id} className="border-border/50 hover:border-primary/30 transition-all">
                           <CardContent className="p-5">
                             <div className="flex flex-col sm:flex-row gap-4">
-                              {/* Event image */}
-                              {event?.image_url && (
+                              {order.event?.image_url && (
                                 <div className="relative w-full sm:w-24 h-32 sm:h-24 rounded-xl overflow-hidden bg-muted shrink-0">
                                   <img
-                                    src={event.image_url}
-                                    alt={event.title}
+                                    src={order.event.image_url}
+                                    alt={order.event.title}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
@@ -174,31 +175,31 @@ export default function DashboardPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2 mb-2">
                                   <h3 className="font-heading font-semibold text-base text-foreground leading-snug">
-                                    {event?.title}
+                                    {order.event?.title}
                                   </h3>
                                   <Badge
-                                    variant={status === "confirmed" ? "default" : "secondary"}
-                                    className={status === "confirmed" ? "bg-secondary/20 text-secondary border-secondary/30 shrink-0" : "shrink-0"}
+                                    variant="default"
+                                    className="bg-secondary/20 text-secondary border-secondary/30 shrink-0"
                                   >
-                                    {status}
+                                    confirmed
                                   </Badge>
                                 </div>
                                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
-                                  {event?.date && (
+                                  {order.event?.date && (
                                     <span className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3 text-primary" /> {formatDate(event.date)}
+                                      <Calendar className="w-3 h-3 text-primary" /> {formatDate(order.event.date)}
                                     </span>
                                   )}
-                                  {event?.venue && (
+                                  {order.event?.venue && (
                                     <span className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3 text-secondary" /> {event.venue}
+                                      <MapPin className="w-3 h-3 text-secondary" /> {order.event.venue}
                                     </span>
                                   )}
                                 </div>
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground">{pkg?.name}</span> × {qty} ·{" "}
-                                    <span className="font-semibold text-foreground">{formatPrice(total)}</span>
+                                    <span className="font-medium text-foreground">{order.ticket_package?.name}</span> × {order.quantity} ·{" "}
+                                    <span className="font-semibold text-foreground">{formatPrice(order.total_price)}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <Button variant="outline" size="sm" className="gap-1.5 border-border/50 text-xs h-8">
@@ -209,9 +210,11 @@ export default function DashboardPage() {
                                     </Button>
                                   </div>
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  Booking ref: <span className="font-mono text-foreground">{confirmationCode}</span>
-                                </p>
+                                {order.payment_reference && (
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Ref: <span className="font-mono text-foreground">{order.payment_reference}</span>
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </CardContent>

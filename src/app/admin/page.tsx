@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   BarChart3, Calendar, Edit, Eye, LayoutDashboard,
-  Package, Plus, Settings, Ticket, Trash2, TrendingUp, Users, CheckCircle2, Clock
+  Package, Plus, Settings, Ticket, Trash2, TrendingUp, Users, CheckCircle2, Clock,
+  XCircle, Download, Mail, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { mockEvents, mockPackages, mockOrders } from "@/lib/mock-data";
 import { formatDate, formatPrice } from "@/lib/utils";
-import { EventCategory } from "@/types";
+import { EventCategory, TicketPackage, Order } from "@/types";
 import Image from "next/image";
 
 const CATEGORIES: EventCategory[] = [
@@ -50,6 +51,8 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
 export default function AdminDashboard() {
   const [section, setSection] = useState<Section>("dashboard");
   const [events, setEvents] = useState(mockEvents);
+  const [packages, setPackages] = useState<Record<string, TicketPackage[]>>({ ...mockPackages });
+  const [orders, setOrders] = useState<Order[]>([...mockOrders]);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState({
@@ -57,10 +60,21 @@ export default function AdminDashboard() {
     date: "", category: "" as EventCategory | "", image_url: "",
   });
 
-  const totalTicketsSold = mockOrders
+  // Package creation
+  const [addPkgOpen, setAddPkgOpen] = useState(false);
+  const [newPkg, setNewPkg] = useState({
+    event_id: "", name: "", tier: "" as "Regular" | "VIP" | "Table" | "",
+    price: "", total_slots: "", perks: "",
+  });
+
+  // Order / Attendee detail dialogs
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedAttendee, setSelectedAttendee] = useState<ReturnType<typeof buildAttendees>[number] | null>(null);
+
+  const totalTicketsSold = orders
     .filter((o) => o.status === "confirmed")
     .reduce((s, o) => s + o.quantity, 0);
-  const totalRevenue = mockOrders
+  const totalRevenue = orders
     .filter((o) => o.status === "confirmed")
     .reduce((s, o) => s + o.total_price, 0);
 
@@ -96,15 +110,73 @@ export default function AdminDashboard() {
     setDeleteId(null);
   };
 
+  const handleAddPackage = () => {
+    if (!newPkg.event_id || !newPkg.name || !newPkg.tier || !newPkg.price || !newPkg.total_slots) return;
+    const slots = parseInt(newPkg.total_slots, 10);
+    const pkg: TicketPackage = {
+      id: Date.now().toString(),
+      event_id: newPkg.event_id,
+      name: newPkg.name,
+      tier: newPkg.tier as "Regular" | "VIP" | "Table",
+      price: parseFloat(newPkg.price),
+      perks: newPkg.perks ? newPkg.perks.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      total_slots: slots,
+      available_slots: slots,
+      is_available: true,
+      created_at: new Date().toISOString(),
+    };
+    setPackages((prev) => ({
+      ...prev,
+      [newPkg.event_id]: [...(prev[newPkg.event_id] ?? []), pkg],
+    }));
+    setAddPkgOpen(false);
+    setNewPkg({ event_id: "", name: "", tier: "", price: "", total_slots: "", perks: "" });
+  };
+
+  const handleConfirmOrder = (id: string) => {
+    setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "confirmed" as const } : o));
+    if (selectedOrder?.id === id) setSelectedOrder((o) => o ? { ...o, status: "confirmed" } : o);
+  };
+
+  const handleCancelOrder = (id: string) => {
+    setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "cancelled" as const } : o));
+    if (selectedOrder?.id === id) setSelectedOrder((o) => o ? { ...o, status: "cancelled" } : o);
+  };
+
+  const exportAttendeesCSV = () => {
+    const rows = [
+      ["Name", "Email", "Event", "Package", "Qty", "Total", "Order Date"],
+      ...buildAttendees().map((a) => [
+        a.guest_name ?? "",
+        a.guest_email ?? "",
+        a.event?.title ?? "",
+        a.pkg?.name ?? "",
+        String(a.quantity),
+        String(a.total_price),
+        new Date(a.created_at).toLocaleDateString("en-GB"),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "attendees.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  function buildAttendees() {
+    return orders
+      .filter((o) => o.status === "confirmed")
+      .map((o) => {
+        const event = events.find((e) => e.id === o.event_id);
+        const pkgList = packages[o.event_id] ?? [];
+        const pkg = pkgList.find((p) => p.id === o.package_id);
+        return { ...o, event, pkg };
+      });
+  }
+
   // Derive attendees from orders
-  const attendees = mockOrders
-    .filter((o) => o.status === "confirmed")
-    .map((o) => {
-      const event = mockEvents.find((e) => e.id === o.event_id);
-      const pkgList = mockPackages[o.event_id] ?? [];
-      const pkg = pkgList.find((p) => p.id === o.package_id);
-      return { ...o, event, pkg };
-    });
+  const attendees = buildAttendees();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -130,7 +202,7 @@ export default function AdminDashboard() {
               {label}
               {id === "orders" && (
                 <span className="ml-auto text-xs bg-primary text-white rounded-full px-1.5 py-0.5 leading-none">
-                  {mockOrders.length}
+                  {orders.length}
                 </span>
               )}
             </button>
@@ -155,6 +227,67 @@ export default function AdminDashboard() {
             <h1 className="font-heading font-bold text-lg text-foreground">{sectionTitles[section].title}</h1>
             <p className="text-xs text-muted-foreground">{sectionTitles[section].subtitle}</p>
           </div>
+          {section === "packages" && (
+            <Dialog open={addPkgOpen} onOpenChange={setAddPkgOpen}>
+              <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2" />}>
+                <Plus className="w-4 h-4" /> Add Package
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="font-heading">Add Ticket Package</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Event</Label>
+                    <Select value={newPkg.event_id} onValueChange={(v) => v && setNewPkg({ ...newPkg, event_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select event…" /></SelectTrigger>
+                      <SelectContent>
+                        {events.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="pkg-name">Package Name</Label>
+                      <Input id="pkg-name" placeholder="Early Bird" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tier</Label>
+                      <Select value={newPkg.tier} onValueChange={(v) => v && setNewPkg({ ...newPkg, tier: v as "Regular" | "VIP" | "Table" })}>
+                        <SelectTrigger><SelectValue placeholder="Tier…" /></SelectTrigger>
+                        <SelectContent>
+                          {(["Regular", "VIP", "Table"] as const).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="pkg-price">Price (QAR)</Label>
+                      <Input id="pkg-price" type="number" min="0" placeholder="450" value={newPkg.price} onChange={(e) => setNewPkg({ ...newPkg, price: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pkg-slots">Total Slots</Label>
+                      <Input id="pkg-slots" type="number" min="1" placeholder="100" value={newPkg.total_slots} onChange={(e) => setNewPkg({ ...newPkg, total_slots: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pkg-perks">Perks (comma-separated)</Label>
+                    <Input id="pkg-perks" placeholder="Welcome drink, Name badge, Reserved seating" value={newPkg.perks} onChange={(e) => setNewPkg({ ...newPkg, perks: e.target.value })} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddPkgOpen(false)}>Cancel</Button>
+                  <Button onClick={handleAddPackage} className="gradient-primary border-0 text-white">Add Package</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+          {section === "attendees" && (
+            <Button variant="outline" className="gap-2 border-border/50" onClick={exportAttendeesCSV}>
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+          )}
           {section === "events" && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2" />}>
@@ -167,7 +300,7 @@ export default function AdminDashboard() {
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
                     <Label htmlFor="admin-title">Event Title</Label>
-                    <Input id="admin-title" placeholder="Lagos Jazz Night" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })} />
+                    <Input id="admin-title" placeholder="Doha Jazz Gala" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
@@ -190,7 +323,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admin-location">City</Label>
-                    <Input id="admin-location" placeholder="Lagos, Nigeria" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} />
+                    <Input id="admin-location" placeholder="Doha, Qatar" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admin-desc">Description</Label>
@@ -248,8 +381,8 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockOrders.slice(0, 5).map((order) => {
-                        const event = mockEvents.find((e) => e.id === order.event_id);
+                      {orders.slice(0, 5).map((order) => {
+                        const event = events.find((e) => e.id === order.event_id);
                         return (
                           <tr key={order.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
                             <td className="px-5 py-3 text-xs font-mono text-muted-foreground">{order.id}</td>
@@ -298,7 +431,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {events.map((event) => {
-                      const pkgs = mockPackages[event.id] ?? [];
+                      const pkgs = packages[event.id] ?? [];
                       const sold = pkgs.reduce((s, p) => s + (p.total_slots - p.available_slots), 0);
                       const total = pkgs.reduce((s, p) => s + p.total_slots, 0);
                       return (
@@ -372,7 +505,7 @@ export default function AdminDashboard() {
           {section === "packages" && (
             <div className="space-y-6">
               {events.map((event) => {
-                const pkgs = mockPackages[event.id] ?? [];
+                const pkgs = packages[event.id] ?? [];
                 if (!pkgs.length) return null;
                 return (
                   <Card key={event.id} className="border-border">
@@ -391,7 +524,7 @@ export default function AdminDashboard() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-y border-border">
-                            {["Package", "Tier", "Price", "Sold", "Available", "Status"].map((h) => (
+                            {["Package", "Tier", "Price", "Sold", "Available", "Status", ""].map((h) => (
                               <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-2.5">{h}</th>
                             ))}
                           </tr>
@@ -426,6 +559,32 @@ export default function AdminDashboard() {
                                     {pkg.is_available ? "On Sale" : "Closed"}
                                   </Badge>
                                 </td>
+                                <td className="px-5 py-3">
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
+                                      onClick={() => setPackages((prev) => ({
+                                        ...prev,
+                                        [event.id]: (prev[event.id] ?? []).map((p) =>
+                                          p.id === pkg.id ? { ...p, is_available: !p.is_available } : p
+                                        ),
+                                      }))}
+                                      title={pkg.is_available ? "Close sales" : "Open sales"}
+                                    >
+                                      {pkg.is_available ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                    <Button
+                                      variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive"
+                                      onClick={() => setPackages((prev) => ({
+                                        ...prev,
+                                        [event.id]: (prev[event.id] ?? []).filter((p) => p.id !== pkg.id),
+                                      }))}
+                                      title="Delete package"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })}
@@ -440,112 +599,336 @@ export default function AdminDashboard() {
 
           {/* ── Orders ────────────────────────────────────────── */}
           {section === "orders" && (
-            <Card className="border-border">
-              <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between">
-                <h2 className="font-heading font-semibold text-base">All Orders ({mockOrders.length})</h2>
-                <div className="flex gap-2">
-                  <Badge className="bg-green-50 text-green-700 border-green-200 text-xs gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {mockOrders.filter((o) => o.status === "confirmed").length} confirmed
-                  </Badge>
-                  <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs gap-1">
-                    <Clock className="w-3 h-3" />
-                    {mockOrders.filter((o) => o.status === "pending").length} pending
-                  </Badge>
+            <>
+              <Card className="border-border">
+                <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between">
+                  <h2 className="font-heading font-semibold text-base">All Orders ({orders.length})</h2>
+                  <div className="flex gap-2">
+                    <Badge className="bg-green-50 text-green-700 border-green-200 text-xs gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {orders.filter((o) => o.status === "confirmed").length} confirmed
+                    </Badge>
+                    <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs gap-1">
+                      <Clock className="w-3 h-3" />
+                      {orders.filter((o) => o.status === "pending").length} pending
+                    </Badge>
+                    <Badge className="bg-red-50 text-red-700 border-red-200 text-xs gap-1">
+                      <XCircle className="w-3 h-3" />
+                      {orders.filter((o) => o.status === "cancelled").length} cancelled
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["Order", "Customer", "Event", "Package", "Qty", "Total", "Date", "Status", "Actions"].map((h) => (
+                          <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-3">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((order) => {
+                        const event = events.find((e) => e.id === order.event_id);
+                        const pkgList = packages[order.event_id] ?? [];
+                        const pkg = pkgList.find((p) => p.id === order.package_id);
+                        return (
+                          <tr
+                            key={order.id}
+                            className="border-b border-border/40 hover:bg-muted/20 transition-colors cursor-pointer"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            <td className="px-5 py-3 text-xs font-mono text-muted-foreground">{order.id}</td>
+                            <td className="px-5 py-3">
+                              <p className="font-medium text-sm">{order.guest_name}</p>
+                              <p className="text-xs text-muted-foreground">{order.guest_email}</p>
+                            </td>
+                            <td className="px-5 py-3 text-xs text-muted-foreground max-w-[140px]">
+                              <span className="truncate block">{event?.title ?? "—"}</span>
+                            </td>
+                            <td className="px-5 py-3">
+                              <Badge variant="secondary" className="text-xs">{pkg?.name ?? "—"}</Badge>
+                            </td>
+                            <td className="px-5 py-3 text-center text-sm font-medium">× {order.quantity}</td>
+                            <td className="px-5 py-3 font-medium text-sm">{formatPrice(order.total_price)}</td>
+                            <td className="px-5 py-3 text-xs text-muted-foreground">
+                              {new Date(order.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                            </td>
+                            <td className="px-5 py-3">
+                              <Badge className={
+                                order.status === "confirmed" ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                : order.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200 text-xs"
+                                : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                              }>
+                                {order.status}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1">
+                                {order.status !== "confirmed" && (
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-7 px-2 text-xs text-green-700 hover:text-green-800 hover:bg-green-50"
+                                    onClick={() => handleConfirmOrder(order.id)}
+                                  >
+                                    <CheckCircle2 className="w-3 h-3 mr-1" /> Confirm
+                                  </Button>
+                                )}
+                                {order.status !== "cancelled" && (
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-red-50"
+                                    onClick={() => handleCancelOrder(order.id)}
+                                  >
+                                    <X className="w-3 h-3 mr-1" /> Cancel
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              </CardHeader>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {["Order", "Customer", "Event", "Package", "Qty", "Total", "Date", "Status"].map((h) => (
-                        <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-3">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockOrders.map((order) => {
-                      const event = mockEvents.find((e) => e.id === order.event_id);
-                      const pkgList = mockPackages[order.event_id] ?? [];
-                      const pkg = pkgList.find((p) => p.id === order.package_id);
-                      return (
-                        <tr key={order.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
-                          <td className="px-5 py-3 text-xs font-mono text-muted-foreground">{order.id}</td>
-                          <td className="px-5 py-3">
-                            <p className="font-medium text-sm">{order.guest_name}</p>
-                            <p className="text-xs text-muted-foreground">{order.guest_email}</p>
-                          </td>
-                          <td className="px-5 py-3 text-xs text-muted-foreground max-w-[140px]">
-                            <span className="truncate block">{event?.title ?? "—"}</span>
-                          </td>
-                          <td className="px-5 py-3">
-                            <Badge variant="secondary" className="text-xs">{pkg?.name ?? "—"}</Badge>
-                          </td>
-                          <td className="px-5 py-3 text-center text-sm font-medium">× {order.quantity}</td>
-                          <td className="px-5 py-3 font-medium text-sm">{formatPrice(order.total_price)}</td>
-                          <td className="px-5 py-3 text-xs text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-                          </td>
-                          <td className="px-5 py-3">
-                            <Badge className={order.status === "confirmed"
-                              ? "bg-green-50 text-green-700 border-green-200 text-xs"
-                              : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
-                            }>
-                              {order.status}
-                            </Badge>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+              </Card>
+
+              {/* Order Detail Dialog */}
+              <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading">Order Details</DialogTitle>
+                  </DialogHeader>
+                  {selectedOrder && (() => {
+                    const event = events.find((e) => e.id === selectedOrder.event_id);
+                    const pkgList = packages[selectedOrder.event_id] ?? [];
+                    const pkg = pkgList.find((p) => p.id === selectedOrder.package_id);
+                    return (
+                      <div className="space-y-4 py-1">
+                        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                          <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white text-sm font-bold shrink-0">
+                            {selectedOrder.guest_name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{selectedOrder.guest_name}</p>
+                            <p className="text-xs text-muted-foreground">{selectedOrder.guest_email}</p>
+                          </div>
+                          <Badge className={
+                            selectedOrder.status === "confirmed" ? "ml-auto bg-green-50 text-green-700 border-green-200 text-xs"
+                            : selectedOrder.status === "cancelled" ? "ml-auto bg-red-50 text-red-700 border-red-200 text-xs"
+                            : "ml-auto bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                          }>
+                            {selectedOrder.status}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Order ID</p>
+                            <p className="font-mono text-xs">{selectedOrder.id}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Order Date</p>
+                            <p>{new Date(selectedOrder.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground mb-0.5">Event</p>
+                            <p className="font-medium">{event?.title ?? "—"}</p>
+                            <p className="text-xs text-muted-foreground">{event?.venue} · {event ? formatDate(event.date) : ""}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Package</p>
+                            <p>{pkg?.name ?? "—"} <span className="text-muted-foreground">({pkg?.tier})</span></p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Quantity</p>
+                            <p>{selectedOrder.quantity} ticket{selectedOrder.quantity > 1 ? "s" : ""}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Unit Price</p>
+                            <p>{pkg ? formatPrice(pkg.price) : "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Total Paid</p>
+                            <p className="font-heading font-bold text-foreground">{formatPrice(selectedOrder.total_price)}</p>
+                          </div>
+                          {selectedOrder.payment_reference && (
+                            <div className="col-span-2">
+                              <p className="text-xs text-muted-foreground mb-0.5">Payment Ref</p>
+                              <p className="font-mono text-xs">{selectedOrder.payment_reference}</p>
+                            </div>
+                          )}
+                        </div>
+                        <Separator className="opacity-30" />
+                        <div className="flex gap-2">
+                          {selectedOrder.status !== "confirmed" && (
+                            <Button
+                              className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white border-0"
+                              onClick={() => handleConfirmOrder(selectedOrder.id)}
+                            >
+                              <CheckCircle2 className="w-4 h-4" /> Confirm Order
+                            </Button>
+                          )}
+                          {selectedOrder.status !== "cancelled" && (
+                            <Button
+                              variant="outline"
+                              className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-red-50"
+                              onClick={() => handleCancelOrder(selectedOrder.id)}
+                            >
+                              <X className="w-4 h-4" /> Cancel Order
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </DialogContent>
+              </Dialog>
+            </>
           )}
 
           {/* ── Attendees ─────────────────────────────────────── */}
           {section === "attendees" && (
-            <Card className="border-border">
-              <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between">
-                <h2 className="font-heading font-semibold text-base">Attendees ({attendees.length})</h2>
-                <p className="text-xs text-muted-foreground">Confirmed ticket holders</p>
-              </CardHeader>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {["#", "Name", "Email", "Event", "Package", "Tickets", "Paid"].map((h) => (
-                        <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-3">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendees.map((a, i) => (
-                      <tr key={a.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
-                        <td className="px-5 py-3 text-xs text-muted-foreground">{i + 1}</td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-                              {a.guest_name?.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="font-medium">{a.guest_name}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3 text-xs text-muted-foreground">{a.guest_email}</td>
-                        <td className="px-5 py-3 text-xs text-muted-foreground max-w-[160px]">
-                          <span className="truncate block">{a.event?.title ?? "—"}</span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <Badge variant="secondary" className="text-xs">{a.pkg?.name ?? "—"}</Badge>
-                        </td>
-                        <td className="px-5 py-3 text-center text-sm font-medium">{a.quantity}</td>
-                        <td className="px-5 py-3 font-medium text-sm text-foreground">{formatPrice(a.total_price)}</td>
+            <>
+              <Card className="border-border">
+                <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between">
+                  <h2 className="font-heading font-semibold text-base">Attendees ({attendees.length})</h2>
+                  <p className="text-xs text-muted-foreground">Confirmed ticket holders</p>
+                </CardHeader>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["#", "Name", "Email", "Event", "Package", "Tickets", "Paid", ""].map((h) => (
+                          <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-3">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                    </thead>
+                    <tbody>
+                      {attendees.map((a, i) => (
+                        <tr key={a.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                          <td className="px-5 py-3 text-xs text-muted-foreground">{i + 1}</td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                {a.guest_name?.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-medium">{a.guest_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 text-xs text-muted-foreground">{a.guest_email}</td>
+                          <td className="px-5 py-3 text-xs text-muted-foreground max-w-[160px]">
+                            <span className="truncate block">{a.event?.title ?? "—"}</span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <Badge variant="secondary" className="text-xs">{a.pkg?.name ?? "—"}</Badge>
+                          </td>
+                          <td className="px-5 py-3 text-center text-sm font-medium">{a.quantity}</td>
+                          <td className="px-5 py-3 font-medium text-sm text-foreground">{formatPrice(a.total_price)}</td>
+                          <td className="px-5 py-3">
+                            <Button
+                              variant="ghost" size="sm"
+                              className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => setSelectedAttendee(a)}
+                            >
+                              <Eye className="w-3 h-3 mr-1" /> View
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Attendee Detail Dialog */}
+              <Dialog open={!!selectedAttendee} onOpenChange={(open) => !open && setSelectedAttendee(null)}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading">Attendee Details</DialogTitle>
+                  </DialogHeader>
+                  {selectedAttendee && (
+                    <div className="space-y-4 py-1">
+                      <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-xl">
+                        <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-white text-lg font-bold shrink-0">
+                          {selectedAttendee.guest_name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-heading font-semibold text-base">{selectedAttendee.guest_name}</p>
+                          <p className="text-sm text-muted-foreground">{selectedAttendee.guest_email}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground mb-0.5">Event</p>
+                          <p className="font-medium">{selectedAttendee.event?.title ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground">{selectedAttendee.event?.venue} · {selectedAttendee.event ? formatDate(selectedAttendee.event.date) : ""}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Package</p>
+                          <p>{selectedAttendee.pkg?.name ?? "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Tier</p>
+                          <Badge variant="secondary" className="text-xs">{selectedAttendee.pkg?.tier ?? "—"}</Badge>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Tickets</p>
+                          <p>{selectedAttendee.quantity}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Total Paid</p>
+                          <p className="font-heading font-bold">{formatPrice(selectedAttendee.total_price)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground mb-0.5">Order ID</p>
+                          <p className="font-mono text-xs">{selectedAttendee.id}</p>
+                        </div>
+                        {selectedAttendee.pkg?.perks && selectedAttendee.pkg.perks.length > 0 && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground mb-1.5">Perks Included</p>
+                            <ul className="space-y-1">
+                              {selectedAttendee.pkg.perks.map((perk) => (
+                                <li key={perk} className="flex items-center gap-2 text-xs">
+                                  <CheckCircle2 className="w-3 h-3 text-secondary shrink-0" /> {perk}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                      <Separator className="opacity-30" />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1 gap-2"
+                          onClick={() => window.open(`mailto:${selectedAttendee.guest_email}?subject=Your ticket for ${selectedAttendee.event?.title ?? "the event"}`)}
+                        >
+                          <Mail className="w-4 h-4" /> Email Attendee
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => {
+                            const row = [
+                              selectedAttendee.guest_name ?? "",
+                              selectedAttendee.guest_email ?? "",
+                              selectedAttendee.event?.title ?? "",
+                              selectedAttendee.pkg?.name ?? "",
+                              String(selectedAttendee.quantity),
+                              String(selectedAttendee.total_price),
+                            ];
+                            const csv = row.map((c) => `"${c.replace(/"/g, '""')}"`).join(",");
+                            navigator.clipboard.writeText(csv);
+                          }}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </>
           )}
 
           {/* ── Analytics ─────────────────────────────────────── */}
@@ -572,7 +955,7 @@ export default function AdminDashboard() {
                   </CardHeader>
                   <CardContent className="px-5 pb-5 space-y-4">
                     {events.slice(0, 5).map((event) => {
-                      const pkgs = mockPackages[event.id] ?? [];
+                      const pkgs = packages[event.id] ?? [];
                       const sold = pkgs.reduce((s, p) => s + (p.total_slots - p.available_slots), 0);
                       const total = pkgs.reduce((s, p) => s + p.total_slots, 0);
                       const pct = total > 0 ? (sold / total) * 100 : 0;
@@ -622,20 +1005,20 @@ export default function AdminDashboard() {
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Avg. Order Value</p>
                         <p className="font-heading font-bold text-xl text-foreground">
-                          {formatPrice(Math.round(totalRevenue / (mockOrders.filter(o => o.status === "confirmed").length || 1)))}
+                          {formatPrice(Math.round(totalRevenue / (orders.filter(o => o.status === "confirmed").length || 1)))}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Confirmed Orders</p>
                         <p className="font-heading font-bold text-xl text-foreground">
-                          {mockOrders.filter((o) => o.status === "confirmed").length}
+                          {orders.filter((o) => o.status === "confirmed").length}
                         </p>
                       </div>
                     </div>
                     <Separator className="my-4 opacity-30" />
                     <div className="space-y-2">
-                      {mockOrders.filter((o) => o.status === "confirmed").slice(0, 4).map((order) => {
-                        const event = mockEvents.find((e) => e.id === order.event_id);
+                      {orders.filter((o) => o.status === "confirmed").slice(0, 4).map((order) => {
+                        const event = events.find((e) => e.id === order.event_id);
                         return (
                           <div key={order.id} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">

@@ -11,7 +11,7 @@ export async function signIn(formData: FormData) {
     password: formData.get("password") as string,
   });
 
-  if (error) return { error: error.message };
+  if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
@@ -20,7 +20,12 @@ export async function signUp(formData: FormData) {
   const supabase = await createClient();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const confirm = formData.get("confirm") as string;
   const fullName = formData.get("name") as string;
+
+  if (password !== confirm) {
+    redirect("/auth/signup?error=Passwords+do+not+match");
+  }
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -30,7 +35,7 @@ export async function signUp(formData: FormData) {
     },
   });
 
-  if (error) return { error: error.message };
+  if (error) redirect(`/auth/signup?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
@@ -40,6 +45,34 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function updateProfile(formData: FormData) {
+  const supabase = await createClient();
+  const fullName = formData.get("full_name") as string;
+
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: fullName },
+  });
+
+  if (error) redirect(`/dashboard/profile?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/dashboard", "layout");
+  redirect("/dashboard/profile?success=Profile+updated");
+}
+
+export async function updatePassword(formData: FormData) {
+  const supabase = await createClient();
+  const password = formData.get("password") as string;
+  const confirm = formData.get("confirm") as string;
+
+  if (password !== confirm) {
+    redirect("/dashboard/settings?error=Passwords+do+not+match");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) redirect(`/dashboard/settings?error=${encodeURIComponent(error.message)}`);
+  redirect("/dashboard/settings?success=Password+updated");
 }
 
 export async function createOrder(data: {

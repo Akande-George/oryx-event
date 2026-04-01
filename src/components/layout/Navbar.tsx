@@ -16,19 +16,52 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
   { href: "/events", label: "Events" },
   { href: "/about", label: "About" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ user: userProp }: { user?: User | null }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<User | null | undefined>(userProp);
 
-  // Mock auth state - replace with Supabase user
-  const user = null as { name: string; email: string; role: string } | null;
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  useEffect(() => {
+    // If user was passed as a prop, trust it
+    if (userProp !== undefined) {
+      setUser(userProp);
+      return;
+    }
+    // Otherwise fetch from browser client (for client-component pages)
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, [userProp]);
+
+  const fullName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const initials = fullName
+    .split(" ")
+    .map((n: string) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "U";
+  const isAdmin = user?.user_metadata?.role === "admin";
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -87,26 +120,29 @@ export default function Navbar() {
                 >
                   <Avatar className="w-9 h-9 border-2 border-primary/30">
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                      {user.name?.slice(0, 2).toUpperCase()}
+                      {initials}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
                   <div className="px-3 py-2">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <p className="text-sm font-medium">{fullName}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem render={<Link href="/dashboard" />}>
                     <LayoutDashboard className="w-4 h-4" /> My Tickets
                   </DropdownMenuItem>
-                  {user.role === "admin" && (
+                  {isAdmin && (
                     <DropdownMenuItem render={<Link href="/admin" />}>
                       <Shield className="w-4 h-4" /> Admin Panel
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive focus:text-destructive gap-2">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive gap-2"
+                    onClick={handleSignOut}
+                  >
                     <LogOut className="w-4 h-4" /> Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>

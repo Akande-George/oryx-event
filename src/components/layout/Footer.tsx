@@ -23,7 +23,7 @@ export default function Footer() {
               <Image src="/logo.png" alt="Logo" width={32} height={32} />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-              The bridge between elegance and experience. Discover, book, and manage premium events across Nigeria.
+              The bridge between elegance and experience. Discover, book, and manage premium events across Qatar.
             </p>
             <div className="flex items-center gap-3">
               <SocialIcon><Share2 className="w-3.5 h-3.5" /></SocialIcon>
@@ -83,7 +83,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-                Victoria Island, Lagos, Nigeria
+                West Bay, Doha, Qatar
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail className="w-3.5 h-3.5 shrink-0 text-primary" />
@@ -91,7 +91,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="w-3.5 h-3.5 shrink-0 text-primary" />
-                +234 800 000 0000
+                +974 4000 0000
               </li>
             </ul>
           </div>

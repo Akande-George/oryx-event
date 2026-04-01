@@ -8,6 +8,7 @@ import Footer from "@/components/layout/Footer";
 import AnimatedEventGrid from "@/components/events/AnimatedEventGrid";
 import { mockEvents } from "@/lib/mock-data";
 import { formatDate } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/server";
 
 const stats = [
   { label: "Events Hosted", value: "500+", icon: Calendar },
@@ -28,10 +29,13 @@ const categories = [
 const featuredEvent = mockEvents[0];
 const upcomingEvents = mockEvents.slice(1, 4);
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar user={user} />
 
       {/* ── Hero ─────────────────────────────────────────── */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden gradient-hero pt-16">
@@ -54,7 +58,7 @@ export default function HomePage() {
               Begin.
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-lg mb-8">
-              Discover Nigeria's finest events — from exclusive jazz nights to tech summits. Book your tickets in seconds and arrive in style.
+              Discover Qatar's finest events — from exclusive jazz galas to tech summits. Book your tickets in seconds and arrive in style.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button size="lg" className="gradient-primary border-0 text-white shadow-xl shadow-primary/30 hover:opacity-90 px-7" asChild>
