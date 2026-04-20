@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  Calendar, Download, QrCode, Ticket, User,
-  Settings, Clock, MapPin, ChevronRight, LogOut
+  Calendar, Ticket, User,
+  Settings, ChevronRight, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
-import { mockEvents, mockPackages } from "@/lib/mock-data";
-import { formatDate, formatPrice } from "@/lib/utils";
+import TicketCard from "@/components/dashboard/TicketCard";
+import { formatDate } from "@/lib/utils";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/supabase/actions";
@@ -160,65 +160,7 @@ export default async function DashboardPage() {
                       </div>
                     ) : (
                       tickets.map((order: any) => (
-                        <Card key={order.id} className="border-border/50 hover:border-primary/30 transition-all">
-                          <CardContent className="p-5">
-                            <div className="flex flex-col sm:flex-row gap-4">
-                              {order.event?.image_url && (
-                                <div className="relative w-full sm:w-24 h-32 sm:h-24 rounded-xl overflow-hidden bg-muted shrink-0">
-                                  <img
-                                    src={order.event.image_url}
-                                    alt={order.event.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-2">
-                                  <h3 className="font-heading font-semibold text-base text-foreground leading-snug">
-                                    {order.event?.title}
-                                  </h3>
-                                  <Badge
-                                    variant="default"
-                                    className="bg-secondary/20 text-secondary border-secondary/30 shrink-0"
-                                  >
-                                    confirmed
-                                  </Badge>
-                                </div>
-                                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
-                                  {order.event?.date && (
-                                    <span className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3 text-primary" /> {formatDate(order.event.date)}
-                                    </span>
-                                  )}
-                                  {order.event?.venue && (
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3 text-secondary" /> {order.event.venue}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground">{order.ticket_package?.name}</span> × {order.quantity} ·{" "}
-                                    <span className="font-semibold text-foreground">{formatPrice(order.total_price)}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" className="gap-1.5 border-border/50 text-xs h-8">
-                                      <QrCode className="w-3.5 h-3.5" /> Show QR
-                                    </Button>
-                                    <Button variant="outline" size="sm" className="gap-1.5 border-border/50 text-xs h-8">
-                                      <Download className="w-3.5 h-3.5" /> PDF
-                                    </Button>
-                                  </div>
-                                </div>
-                                {order.payment_reference && (
-                                  <p className="text-xs text-muted-foreground mt-2">
-                                    Ref: <span className="font-mono text-foreground">{order.payment_reference}</span>
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <TicketCard key={order.id} order={order} />
                       ))
                     )}
                   </TabsContent>

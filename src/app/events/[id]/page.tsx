@@ -24,6 +24,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
   const [liked, setLiked] = useState(false);
+  const [following, setFollowing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<{ pkg: TicketPackage; qty: number } | null>(null);
 
   const event = mockEvents.find((e) => e.id === id);
@@ -191,13 +192,31 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   <Separator className="opacity-30 mb-4" />
 
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" className="gradient-primary border-0 text-white gap-2">
-                      <Users className="w-3.5 h-3.5" /> Follow Organizer
+                    <Button
+                      size="sm"
+                      className={cn(
+                        "gap-2 border-0 text-white",
+                        following ? "bg-secondary hover:bg-secondary/90" : "gradient-primary"
+                      )}
+                      onClick={() => setFollowing(!following)}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      {following ? "Following" : "Follow Organizer"}
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-2 border-border/50">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2 border-border/50"
+                      onClick={() => window.open(`mailto:events@oryxevent.com?subject=Enquiry about ${encodeURIComponent(event.title)}`)}
+                    >
                       <Mail className="w-3.5 h-3.5" /> Contact
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-2 border-border/50">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2 border-border/50"
+                      onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(event.organizer)}`, "_blank")}
+                    >
                       <Globe className="w-3.5 h-3.5" /> Website
                     </Button>
                   </div>

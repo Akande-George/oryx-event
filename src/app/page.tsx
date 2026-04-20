@@ -74,7 +74,7 @@ export default async function HomePage() {
               <div className="flex -space-x-2">
                 {[...Array(4)].map((_, i) => (
                   <div
-                    key={i}
+                    key={`avatar-${i}`}
                     className="w-8 h-8 rounded-full border-2 border-background bg-gradient-to-br from-primary to-secondary"
                     style={{ zIndex: 4 - i }}
                   />

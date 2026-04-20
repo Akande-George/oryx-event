@@ -71,6 +71,36 @@ export default function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedAttendee, setSelectedAttendee] = useState<ReturnType<typeof buildAttendees>[number] | null>(null);
 
+  // Edit event
+  const [editEventId, setEditEventId] = useState<string | null>(null);
+  const [editEvent, setEditEvent] = useState({
+    title: "", description: "", location: "", venue: "",
+    date: "", category: "" as EventCategory | "", image_url: "",
+  });
+
+  const handleEditOpen = (event: typeof events[number]) => {
+    setEditEventId(event.id);
+    setEditEvent({
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      venue: event.venue,
+      date: event.date ? event.date.replace(" ", "T").slice(0, 16) : "",
+      category: event.category,
+      image_url: event.image_url,
+    });
+  };
+
+  const handleEditSave = () => {
+    if (!editEventId || !editEvent.title) return;
+    setEvents((prev) => prev.map((e) =>
+      e.id === editEventId
+        ? { ...e, ...editEvent, category: editEvent.category as EventCategory, updated_at: new Date().toISOString() }
+        : e
+    ));
+    setEditEventId(null);
+  };
+
   const totalTicketsSold = orders
     .filter((o) => o.status === "confirmed")
     .reduce((s, o) => s + o.quantity, 0);
@@ -179,8 +209,9 @@ export default function AdminDashboard() {
   const attendees = buildAttendees();
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Desktop Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
       <aside className="hidden md:flex flex-col w-60 border-r border-border bg-white shrink-0">
         <Link href="/" className="flex items-center gap-2 px-5 py-5 border-b border-border">
           <Image src={`/logo.png`} alt="Logo" width={32} height={32} />
@@ -220,17 +251,23 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-16 md:pb-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="font-heading font-bold text-lg text-foreground">{sectionTitles[section].title}</h1>
-            <p className="text-xs text-muted-foreground">{sectionTitles[section].subtitle}</p>
+        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/" className="md:hidden flex items-center gap-2 shrink-0">
+              <Image src="/logo.png" alt="Logo" width={28} height={28} />
+              <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Admin</Badge>
+            </Link>
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold text-base sm:text-lg text-foreground truncate">{sectionTitles[section].title}</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">{sectionTitles[section].subtitle}</p>
+            </div>
           </div>
           {section === "packages" && (
             <Dialog open={addPkgOpen} onOpenChange={setAddPkgOpen}>
-              <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2" />}>
-                <Plus className="w-4 h-4" /> Add Package
+              <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2 shrink-0" />}>
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Package</span>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
@@ -284,14 +321,14 @@ export default function AdminDashboard() {
             </Dialog>
           )}
           {section === "attendees" && (
-            <Button variant="outline" className="gap-2 border-border/50" onClick={exportAttendeesCSV}>
-              <Download className="w-4 h-4" /> Export CSV
+            <Button variant="outline" className="gap-2 border-border/50 shrink-0" onClick={exportAttendeesCSV}>
+              <Download className="w-4 h-4" /> <span className="hidden sm:inline">Export CSV</span>
             </Button>
           )}
           {section === "events" && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-              <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2" />}>
-                <Plus className="w-4 h-4" /> Create Event
+              <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2 shrink-0" />}>
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create Event</span>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
@@ -343,7 +380,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
 
           {/* ── Dashboard ─────────────────────────────────────── */}
           {section === "dashboard" && (
@@ -468,7 +505,11 @@ export default function AdminDashboard() {
                               <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-foreground" asChild>
                                 <Link href={`/events/${event.id}`}><Eye className="w-3.5 h-3.5" /></Link>
                               </Button>
-                              <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary">
+                              <Button
+                                variant="ghost" size="icon"
+                                className="w-7 h-7 text-muted-foreground hover:text-primary"
+                                onClick={() => handleEditOpen(event)}
+                              >
                                 <Edit className="w-3.5 h-3.5" />
                               </Button>
                               <Dialog open={deleteId === event.id} onOpenChange={(open) => !open && setDeleteId(null)}>
@@ -500,6 +541,56 @@ export default function AdminDashboard() {
               </div>
             </Card>
           )}
+
+          {/* Edit Event Dialog (outside events section so it renders regardless) */}
+          <Dialog open={!!editEventId} onOpenChange={(open) => !open && setEditEventId(null)}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="font-heading">Edit Event</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Event Title</Label>
+                  <Input id="edit-title" value={editEvent.title} onChange={(e) => setEditEvent({ ...editEvent, title: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-date">Date & Time</Label>
+                    <Input id="edit-date" type="datetime-local" value={editEvent.date} onChange={(e) => setEditEvent({ ...editEvent, date: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-category">Category</Label>
+                    <Select value={editEvent.category} onValueChange={(v) => v && setEditEvent({ ...editEvent, category: v as EventCategory })}>
+                      <SelectTrigger id="edit-category"><SelectValue placeholder="Choose…" /></SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-venue">Venue</Label>
+                  <Input id="edit-venue" value={editEvent.venue} onChange={(e) => setEditEvent({ ...editEvent, venue: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-location">City</Label>
+                  <Input id="edit-location" value={editEvent.location} onChange={(e) => setEditEvent({ ...editEvent, location: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-desc">Description</Label>
+                  <Textarea id="edit-desc" rows={3} value={editEvent.description} onChange={(e) => setEditEvent({ ...editEvent, description: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-image">Image URL</Label>
+                  <Input id="edit-image" placeholder="https://…" value={editEvent.image_url} onChange={(e) => setEditEvent({ ...editEvent, image_url: e.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditEventId(null)}>Cancel</Button>
+                <Button onClick={handleEditSave} className="gradient-primary border-0 text-white">Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* ── Packages ──────────────────────────────────────── */}
           {section === "packages" && (
@@ -1038,6 +1129,40 @@ export default function AdminDashboard() {
 
         </div>
       </div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-border flex items-center justify-around px-1 py-1.5">
+        {navItems.slice(0, 5).map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setSection(id)}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-0 flex-1 ${
+              section === id ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <div className="relative">
+              <Icon className="w-5 h-5" />
+              {id === "orders" && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-white rounded-full text-[8px] flex items-center justify-center leading-none font-bold">
+                  {orders.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-medium truncate">{label}</span>
+          </button>
+        ))}
+        <Link
+          href="/"
+          className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-0 flex-1 text-muted-foreground"
+        >
+          <Eye className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Site</span>
+        </Link>
+      </nav>
+
+      {/* Mobile bottom nav spacer */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }

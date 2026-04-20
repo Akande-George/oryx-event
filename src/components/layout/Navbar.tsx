@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 
 const navLinks = [
   { href: "/events", label: "Events" },
-  { href: "/about", label: "About" },
 ];
 
 export default function Navbar({ user: userProp }: { user?: User | null }) {
@@ -193,14 +192,62 @@ export default function Navbar({ user: userProp }: { user?: User | null }) {
                       {link.label}
                     </Link>
                   ))}
+                  {user && (
+                    <>
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          "px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3",
+                          pathname.startsWith("/dashboard")
+                            ? "bg-primary/15 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        <LayoutDashboard className="w-4 h-4" /> My Tickets
+                      </Link>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3",
+                            pathname.startsWith("/admin")
+                              ? "bg-primary/15 text-primary"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          )}
+                        >
+                          <Shield className="w-4 h-4" /> Admin Panel
+                        </Link>
+                      )}
+                    </>
+                  )}
                 </nav>
                 <div className="p-4 border-t border-border/50 flex flex-col gap-2">
-                  <Button variant="outline" asChild className="w-full">
-                    <Link href="/auth/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
-                  </Button>
-                  <Button asChild className="w-full gradient-primary border-0 text-white">
-                    <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>Get tickets</Link>
-                  </Button>
+                  {user ? (
+                    <>
+                      <div className="px-3 py-2 mb-1">
+                        <p className="text-sm font-medium truncate">{fullName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"
+                        onClick={() => { handleSignOut(); setMobileOpen(false); }}
+                      >
+                        <LogOut className="w-4 h-4" /> Sign out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" asChild className="w-full">
+                        <Link href="/auth/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
+                      </Button>
+                      <Button asChild className="w-full gradient-primary border-0 text-white">
+                        <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>Get tickets</Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>

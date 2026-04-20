@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Ticket, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,8 +25,8 @@ export default async function SignupPage({
         <div className="absolute top-1/3 -left-16 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/3 right-0 w-56 h-56 bg-white/10 rounded-full blur-3xl" />
         <div className="relative max-w-sm">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-6 shadow-xl shadow-primary/30">
-            <Ticket className="w-7 h-7 text-white" />
+          <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mb-6 shadow-xl">
+            <Image src="/logo.png" alt="Oryx Event Logo" width={40} height={40} />
           </div>
           <h2 className="font-heading font-bold text-4xl text-white mb-4 leading-tight">
             Your next experience awaits.
