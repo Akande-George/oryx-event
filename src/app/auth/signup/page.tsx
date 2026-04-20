@@ -16,7 +16,18 @@ export default async function SignupPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  let errorMsg = "";
+  try {
+    const { error } = await searchParams;
+    errorMsg = error || "";
+  } catch (e: any) {
+    return (
+      <div className="p-10 text-destructive bg-destructive/10">
+        <h1 className="text-xl font-bold">Debug Error</h1>
+        <pre>{e.stack || e.message || JSON.stringify(e)}</pre>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background grid lg:grid-cols-2">
@@ -67,10 +78,10 @@ export default async function SignupPage({
             </Link>
           </p>
 
-          {error && (
+          {errorMsg && (
             <div className="flex items-center gap-2.5 p-3 mb-5 rounded-lg bg-destructive/8 border border-destructive/20 text-sm text-destructive">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              {decodeURIComponent(error)}
+              {decodeURIComponent(errorMsg)}
             </div>
           )}
 

@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ArrowLeft, User, Mail, CheckCircle2, AlertCircle, Shield } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  CheckCircle2,
+  AlertCircle,
+  Shield,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
-import { updateProfile } from "@/lib/supabase/actions";
 
 export const metadata: Metadata = {
   title: "Profile | Oryx Event",
@@ -22,10 +26,17 @@ export default async function ProfilePage({
 }: {
   searchParams: Promise<{ error?: string; success?: string }>;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login");
+  const user = {
+    id: "ui-user-1",
+    email: "demo@oryxevent.com",
+    user_metadata: {
+      full_name: "Demo User",
+      role: "admin",
+    },
+    app_metadata: {
+      provider: "email",
+    },
+  };
 
   const { error, success } = await searchParams;
 
@@ -51,8 +62,12 @@ export default async function ProfilePage({
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
-        <h1 className="font-heading font-bold text-2xl text-foreground mb-1">Profile</h1>
-        <p className="text-sm text-muted-foreground mb-8">Manage your personal information.</p>
+        <h1 className="font-heading font-bold text-2xl text-foreground mb-1">
+          Profile
+        </h1>
+        <p className="text-sm text-muted-foreground mb-8">
+          Manage your personal information.
+        </p>
 
         {error && (
           <div className="flex items-center gap-2.5 p-3 mb-6 rounded-lg bg-destructive/8 border border-destructive/20 text-sm text-destructive">
@@ -76,8 +91,12 @@ export default async function ProfilePage({
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-heading font-semibold text-foreground">{fullName || user.email}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+              <p className="font-heading font-semibold text-foreground">
+                {fullName || user.email}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {user.email}
+              </p>
               <Badge variant="secondary" className="text-xs mt-2 gap-1">
                 <Shield className="w-3 h-3" />
                 {isOAuth ? provider : "Email & Password"}
@@ -89,10 +108,12 @@ export default async function ProfilePage({
         {/* Edit form */}
         <Card className="border-border/50">
           <CardHeader className="p-6 pb-0">
-            <h2 className="font-heading font-semibold text-base">Personal Information</h2>
+            <h2 className="font-heading font-semibold text-base">
+              Personal Information
+            </h2>
           </CardHeader>
           <CardContent className="p-6">
-            <form action={updateProfile} className="space-y-5">
+            <form className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="full_name">Full Name</Label>
                 <div className="relative">
@@ -121,13 +142,19 @@ export default async function ProfilePage({
                     readOnly
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+                <p className="text-xs text-muted-foreground">
+                  Email cannot be changed here.
+                </p>
               </div>
 
               <Separator className="opacity-30" />
 
-              <Button type="submit" className="gradient-primary border-0 text-white shadow-sm">
-                Save Changes
+              <Button
+                type="button"
+                disabled
+                className="gradient-primary border-0 text-white shadow-sm opacity-70 cursor-not-allowed"
+              >
+                Save Changes (UI mode)
               </Button>
             </form>
           </CardContent>

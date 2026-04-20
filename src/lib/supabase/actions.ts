@@ -5,44 +5,37 @@ import { redirect } from "next/navigation";
 import { createClient } from "./server";
 
 export async function signIn(formData: FormData) {
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  });
+  // Use demo credentials for UI development
+  // const supabase = await createClient();
+  // const { error } = await supabase.auth.signInWithPassword({
+  //   email: formData.get("email") as string,
+  //   password: formData.get("password") as string,
+  // });
 
-  if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+  // if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+  
+  // For UI development, any login succeeds
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
 
 export async function signUp(formData: FormData) {
-  const supabase = await createClient();
-  const email = formData.get("email") as string;
+  // const supabase = await createClient();
   const password = formData.get("password") as string;
   const confirm = formData.get("confirm") as string;
-  const fullName = formData.get("name") as string;
 
   if (password !== confirm) {
     redirect("/auth/signup?error=Passwords+do+not+match");
   }
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-    },
-  });
-
-  if (error) redirect(`/auth/signup?error=${encodeURIComponent(error.message)}`);
+  // Any signup succeeds for UI development
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  // const supabase = await createClient();
+  // await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
 }

@@ -1,6 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Calendar, ChevronRight, Shield, Star, Ticket, Users, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Calendar,
+  ChevronRight,
+  Shield,
+  Star,
+  Ticket,
+  Users,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
@@ -8,7 +17,6 @@ import Footer from "@/components/layout/Footer";
 import AnimatedEventGrid from "@/components/events/AnimatedEventGrid";
 import { mockEvents } from "@/lib/mock-data";
 import { formatDate } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/server";
 
 const stats = [
   { label: "Events Hosted", value: "500+", icon: Calendar },
@@ -18,20 +26,49 @@ const stats = [
 ];
 
 const categories = [
-  { label: "Music", emoji: "🎵", count: 24, color: "from-primary/20 to-primary/5" },
-  { label: "Technology", emoji: "💻", count: 18, color: "from-blue-500/20 to-blue-500/5" },
-  { label: "Arts", emoji: "🎨", count: 15, color: "from-purple-500/20 to-purple-500/5" },
-  { label: "Food & Drink", emoji: "🍽️", count: 21, color: "from-secondary/20 to-secondary/5" },
-  { label: "Sports", emoji: "⚽", count: 9, color: "from-orange-500/20 to-orange-500/5" },
-  { label: "Fashion", emoji: "👗", count: 11, color: "from-pink-500/20 to-pink-500/5" },
+  {
+    label: "Music",
+    emoji: "🎵",
+    count: 24,
+    color: "from-primary/20 to-primary/5",
+  },
+  {
+    label: "Technology",
+    emoji: "💻",
+    count: 18,
+    color: "from-blue-500/20 to-blue-500/5",
+  },
+  {
+    label: "Arts",
+    emoji: "🎨",
+    count: 15,
+    color: "from-purple-500/20 to-purple-500/5",
+  },
+  {
+    label: "Food & Drink",
+    emoji: "🍽️",
+    count: 21,
+    color: "from-secondary/20 to-secondary/5",
+  },
+  {
+    label: "Sports",
+    emoji: "⚽",
+    count: 9,
+    color: "from-orange-500/20 to-orange-500/5",
+  },
+  {
+    label: "Fashion",
+    emoji: "👗",
+    count: 11,
+    color: "from-pink-500/20 to-pink-500/5",
+  },
 ];
 
 const featuredEvent = mockEvents[0];
 const upcomingEvents = mockEvents.slice(1, 4);
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = null; // Mocked for UI development
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,13 +95,25 @@ export default async function HomePage() {
               Begin.
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-lg mb-8">
-              Discover Qatar's finest events — from exclusive jazz galas to tech summits. Book your tickets in seconds and arrive in style.
+              Discover Qatar's finest events — from exclusive jazz galas to tech
+              summits. Book your tickets in seconds and arrive in style.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="gradient-primary border-0 text-white shadow-xl shadow-primary/30 hover:opacity-90 px-7" asChild>
-                <Link href="/events">Explore Events <ArrowRight className="w-4 h-4 ml-1" /></Link>
+              <Button
+                size="lg"
+                className="gradient-primary border-0 text-white shadow-xl shadow-primary/30 hover:opacity-90 px-7"
+                asChild
+              >
+                <Link href="/events">
+                  Explore Events <ArrowRight className="w-4 h-4 ml-1" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="border-border/50 bg-background/50 backdrop-blur-sm">
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="border-border/50 bg-background/50 backdrop-blur-sm"
+              >
                 <Link href="/auth/signup">Create Account</Link>
               </Button>
             </div>
@@ -81,7 +130,8 @@ export default async function HomePage() {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">2,400+</span> tickets booked this week
+                <span className="text-foreground font-semibold">2,400+</span>{" "}
+                tickets booked this week
               </p>
             </div>
           </div>
@@ -101,8 +151,12 @@ export default async function HomePage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4">
-                    <Badge className="bg-primary/90 text-white border-0 mb-2 text-xs">Featured Event</Badge>
-                    <h3 className="font-heading font-bold text-white text-lg leading-snug">{featuredEvent.title}</h3>
+                    <Badge className="bg-primary/90 text-white border-0 mb-2 text-xs">
+                      Featured Event
+                    </Badge>
+                    <h3 className="font-heading font-bold text-white text-lg leading-snug">
+                      {featuredEvent.title}
+                    </h3>
                   </div>
                 </div>
                 <div className="p-5">
@@ -112,7 +166,10 @@ export default async function HomePage() {
                       {formatDate(featuredEvent.date)}
                     </div>
                   </div>
-                  <Button className="w-full gradient-primary border-0 text-white" asChild>
+                  <Button
+                    className="w-full gradient-primary border-0 text-white"
+                    asChild
+                  >
                     <Link href={`/events/${featuredEvent.id}`}>
                       Get Tickets <Ticket className="w-3.5 h-3.5 ml-1.5" />
                     </Link>
@@ -138,11 +195,16 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map(({ label, value, icon: Icon }) => (
-              <div key={label} className="flex flex-col items-center text-center gap-2">
+              <div
+                key={label}
+                className="flex flex-col items-center text-center gap-2"
+              >
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1">
                   <Icon className="w-5 h-5 text-primary" />
                 </div>
-                <p className="font-heading font-bold text-3xl text-foreground">{value}</p>
+                <p className="font-heading font-bold text-3xl text-foreground">
+                  {value}
+                </p>
                 <p className="text-sm text-muted-foreground">{label}</p>
               </div>
             ))}
@@ -155,10 +217,17 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">Discover</p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">Browse by Category</h2>
+              <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
+                Discover
+              </p>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">
+                Browse by Category
+              </h2>
             </div>
-            <Link href="/events" className="hidden sm:flex items-center gap-1 text-sm text-primary hover:underline">
+            <Link
+              href="/events"
+              className="hidden sm:flex items-center gap-1 text-sm text-primary hover:underline"
+            >
               All events <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -170,9 +239,15 @@ export default async function HomePage() {
                 href={`/events?category=${encodeURIComponent(cat.label)}`}
                 className={`bg-gradient-to-br ${cat.color} border border-border/50 rounded-2xl p-5 text-center hover:border-primary/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg group`}
               >
-                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">{cat.emoji}</div>
-                <p className="font-heading font-semibold text-sm text-foreground">{cat.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">{cat.count} events</p>
+                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">
+                  {cat.emoji}
+                </div>
+                <p className="font-heading font-semibold text-sm text-foreground">
+                  {cat.label}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {cat.count} events
+                </p>
               </Link>
             ))}
           </div>
@@ -184,11 +259,21 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">Coming Soon</p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">Upcoming Events</h2>
+              <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
+                Coming Soon
+              </p>
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">
+                Upcoming Events
+              </h2>
             </div>
-            <Button variant="outline" asChild className="hidden sm:flex border-border/50 gap-1">
-              <Link href="/events">View all <ArrowRight className="w-4 h-4" /></Link>
+            <Button
+              variant="outline"
+              asChild
+              className="hidden sm:flex border-border/50 gap-1"
+            >
+              <Link href="/events">
+                View all <ArrowRight className="w-4 h-4" />
+              </Link>
             </Button>
           </div>
 
@@ -212,13 +297,23 @@ export default async function HomePage() {
                 Ready to host your event?
               </h2>
               <p className="text-white/80 mb-8 max-w-md mx-auto">
-                Reach thousands of eager attendees. Create your event page in minutes.
+                Reach thousands of eager attendees. Create your event page in
+                minutes.
               </p>
               <div className="flex flex-wrap justify-center gap-3">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold shadow-xl" asChild>
+                <Button
+                  size="lg"
+                  className="bg-white text-primary hover:bg-white/90 font-semibold shadow-xl"
+                  asChild
+                >
                   <Link href="/admin">Create Event</Link>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10" asChild>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10"
+                  asChild
+                >
                   <Link href="/events">Browse Events</Link>
                 </Button>
               </div>

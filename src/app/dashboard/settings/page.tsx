@@ -1,6 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ArrowLeft, Lock, CheckCircle2, AlertCircle, LogOut } from "lucide-react";
+import {
+  ArrowLeft,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  LogOut,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +13,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
-import { updatePassword, signOut } from "@/lib/supabase/actions";
 
 export const metadata: Metadata = {
   title: "Settings | Oryx Event",
@@ -20,10 +23,17 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ error?: string; success?: string }>;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login");
+  const user = {
+    id: "ui-user-1",
+    email: "demo@oryxevent.com",
+    user_metadata: {
+      full_name: "Demo User",
+      role: "admin",
+    },
+    app_metadata: {
+      provider: "email",
+    },
+  };
 
   const { error, success } = await searchParams;
 
@@ -40,8 +50,12 @@ export default async function SettingsPage({
           <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
-        <h1 className="font-heading font-bold text-2xl text-foreground mb-1">Settings</h1>
-        <p className="text-sm text-muted-foreground mb-8">Manage your account security.</p>
+        <h1 className="font-heading font-bold text-2xl text-foreground mb-1">
+          Settings
+        </h1>
+        <p className="text-sm text-muted-foreground mb-8">
+          Manage your account security.
+        </p>
 
         {error && (
           <div className="flex items-center gap-2.5 p-3 mb-6 rounded-lg bg-destructive/8 border border-destructive/20 text-sm text-destructive">
@@ -59,7 +73,9 @@ export default async function SettingsPage({
         {/* Password */}
         <Card className="border-border/50 mb-6">
           <CardHeader className="p-6 pb-0">
-            <h2 className="font-heading font-semibold text-base">Change Password</h2>
+            <h2 className="font-heading font-semibold text-base">
+              Change Password
+            </h2>
             <p className="text-xs text-muted-foreground mt-1">
               {isOAuth
                 ? "You signed in with a social provider. Password changes are not available."
@@ -72,7 +88,7 @@ export default async function SettingsPage({
                 Password management is handled by your sign-in provider.
               </div>
             ) : (
-              <form action={updatePassword} className="space-y-5">
+              <form className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="password">New Password</Label>
                   <div className="relative">
@@ -105,8 +121,12 @@ export default async function SettingsPage({
 
                 <Separator className="opacity-30" />
 
-                <Button type="submit" className="gradient-primary border-0 text-white shadow-sm">
-                  Update Password
+                <Button
+                  type="button"
+                  disabled
+                  className="gradient-primary border-0 text-white shadow-sm opacity-70 cursor-not-allowed"
+                >
+                  Update Password (UI mode)
                 </Button>
               </form>
             )}
@@ -120,17 +140,17 @@ export default async function SettingsPage({
           </CardHeader>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground mb-4">
-              Signed in as <span className="font-medium text-foreground">{user.email}</span>
+              Signed in as{" "}
+              <span className="font-medium text-foreground">{user.email}</span>
             </p>
-            <form action={signOut}>
-              <Button
-                type="submit"
-                variant="outline"
-                className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
-              >
-                <LogOut className="w-4 h-4" /> Sign out of all devices
-              </Button>
-            </form>
+            <Button
+              type="button"
+              variant="outline"
+              disabled
+              className="gap-2 text-destructive border-destructive/30 opacity-70 cursor-not-allowed"
+            >
+              <LogOut className="w-4 h-4" /> Sign out of all devices (UI mode)
+            </Button>
           </CardContent>
         </Card>
       </div>
