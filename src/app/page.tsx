@@ -67,12 +67,10 @@ const categories = [
 const featuredEvent = mockEvents[0];
 const upcomingEvents = mockEvents.slice(1, 4);
 
-export default async function HomePage() {
-  const user = null; // Mocked for UI development
-
+export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar user={user} />
+      <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────── */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden gradient-hero pt-16">
@@ -95,8 +93,9 @@ export default async function HomePage() {
               Begin.
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-lg mb-8">
-              Discover Qatar's finest events — from exclusive jazz galas to tech
-              summits. Book your tickets in seconds and arrive in style.
+              Discover the finest events across Qatar and Africa — from
+              exclusive jazz galas to tech summits. Book your tickets in seconds
+              and arrive in style.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button

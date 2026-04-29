@@ -23,6 +23,10 @@ import { mockEvents, mockPackages, mockOrders } from "@/lib/mock-data";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { EventCategory, TicketPackage, Order } from "@/types";
 import Image from "next/image";
+import RouteGuard from "@/components/auth/RouteGuard";
+import { useAuth } from "@/lib/auth/context";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const CATEGORIES: EventCategory[] = [
   "Music", "Sports", "Arts", "Food & Drink", "Business", "Technology", "Comedy", "Fashion", "Other",
@@ -48,7 +52,14 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   analytics: { title: "Analytics", subtitle: "Sales and revenue breakdowns" },
 };
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+  const handleSignOut = () => {
+    signOut();
+    toast.success("Signed out successfully.");
+    router.push("/");
+  };
   const [section, setSection] = useState<Section>("dashboard");
   const [events, setEvents] = useState(mockEvents);
   const [packages, setPackages] = useState<Record<string, TicketPackage[]>>({ ...mockPackages });
@@ -240,13 +251,26 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-border">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
+        <div className="p-3 border-t border-border space-y-0.5">
+          {user && (
+            <div className="px-3 py-2">
+              <p className="text-sm font-medium text-foreground truncate">{user.full_name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+          )}
+          <Link href="/dashboard/settings" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
             <Settings className="w-4 h-4" /> Settings
-          </button>
-          <Link href="/" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all mt-0.5">
+          </Link>
+          <Link href="/" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
             <Eye className="w-4 h-4" /> View Site
           </Link>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <X className="w-4 h-4" /> Sign out
+          </button>
         </div>
       </aside>
 
@@ -1164,5 +1188,13 @@ export default function AdminDashboard() {
       {/* Mobile bottom nav spacer */}
       <div className="h-16 md:hidden" />
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <RouteGuard requireAdmin>
+      <AdminDashboardContent />
+    </RouteGuard>
   );
 }

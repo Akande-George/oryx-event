@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Calendar,
@@ -6,50 +8,38 @@ import {
   Settings,
   ChevronRight,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
 import TicketCard from "@/components/dashboard/TicketCard";
+import RouteGuard from "@/components/auth/RouteGuard";
 import { mockEvents, mockOrders, mockPackages } from "@/lib/mock-data";
-import { Metadata } from "next";
+import { useAuth } from "@/lib/auth/context";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-export const metadata: Metadata = {
-  title: "My Dashboard | Oryx Event",
-};
+function DashboardContent() {
+  const { user, isAdmin, signOut } = useAuth();
+  const router = useRouter();
 
-export default function DashboardPage() {
-  const user = {
-    id: "ui-user-1",
-    email: "demo@oryxevent.com",
-    created_at: "2026-01-01T00:00:00",
-    user_metadata: {
-      full_name: "Demo User",
-      role: "admin",
-    },
-    app_metadata: {
-      provider: "email",
-    },
-  };
-
-  const fullName =
-    (user.user_metadata?.full_name as string | undefined) ??
-    user.email ??
-    "User";
+  const fullName = user?.full_name ?? user?.email ?? "User";
   const initials = fullName
     .split(" ")
-    .map((n: string) => n[0])
+    .map((n) => n[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const joinDate = new Date(user.created_at).toLocaleDateString("en-QA", {
-    month: "long",
-    year: "numeric",
-  });
+  const joinDate = user
+    ? new Date(user.created_at).toLocaleDateString("en-QA", {
+        month: "long",
+        year: "numeric",
+      })
+    : "";
 
   const allPackages = Object.values(mockPackages).flat();
   const orders = mockOrders
@@ -62,15 +52,21 @@ export default function DashboardPage() {
     }));
 
   const upcoming = orders.filter(
-    (o: any) => o.event && new Date(o.event.date) > new Date(),
+    (o) => o.event && new Date(o.event.date) > new Date(),
   );
   const past = orders.filter(
-    (o: any) => o.event && new Date(o.event.date) <= new Date(),
+    (o) => o.event && new Date(o.event.date) <= new Date(),
   );
+
+  const handleSignOut = () => {
+    signOut();
+    toast.success("Signed out successfully.");
+    router.push("/");
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar user={user} />
+      <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Sidebar */}
@@ -86,7 +82,7 @@ export default function DashboardPage() {
                   {fullName}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {user.email}
+                  {user?.email}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Member since {joinDate}
@@ -94,7 +90,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               {[
                 {
@@ -105,7 +100,7 @@ export default function DashboardPage() {
                 },
                 {
                   label: "Events",
-                  value: new Set(orders.map((o: any) => o.event_id)).size,
+                  value: new Set(orders.map((o) => o.event_id)).size,
                   icon: Calendar,
                   color: "text-secondary",
                 },
@@ -122,7 +117,6 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Nav */}
             <Card className="border-border/50">
               <CardContent className="p-2">
                 {[
@@ -132,6 +126,9 @@ export default function DashboardPage() {
                     label: "Settings",
                     href: "/dashboard/settings",
                   },
+                  ...(isAdmin
+                    ? [{ icon: Shield, label: "Admin Panel", href: "/admin" }]
+                    : []),
                 ].map(({ icon: Icon, label, href }) => (
                   <Link
                     key={href}
@@ -145,10 +142,10 @@ export default function DashboardPage() {
                 <Separator className="my-1 opacity-30" />
                 <button
                   type="button"
-                  disabled
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive/70 opacity-70 cursor-not-allowed"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" /> Sign out (UI mode)
+                  <LogOut className="w-4 h-4" /> Sign out
                 </button>
               </CardContent>
             </Card>
@@ -209,7 +206,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                     ) : (
-                      tickets.map((order: any) => (
+                      tickets.map((order) => (
                         <TicketCard key={order.id} order={order} />
                       ))
                     )}
@@ -221,5 +218,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <RouteGuard>
+      <DashboardContent />
+    </RouteGuard>
   );
 }

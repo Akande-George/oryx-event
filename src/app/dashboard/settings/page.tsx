@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Lock,
@@ -12,36 +16,58 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
-import { Metadata } from "next";
+import RouteGuard from "@/components/auth/RouteGuard";
+import { useAuth } from "@/lib/auth/context";
+import { toast } from "sonner";
 
-export const metadata: Metadata = {
-  title: "Settings | Oryx Event",
-};
+function SettingsContent() {
+  const { user, updatePassword, signOut } = useAuth();
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; success?: string }>;
-}) {
-  const user = {
-    id: "ui-user-1",
-    email: "demo@oryxevent.com",
-    user_metadata: {
-      full_name: "Demo User",
-      role: "admin",
-    },
-    app_metadata: {
-      provider: "email",
-    },
+  if (!user) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setSaving(true);
+    const result = updatePassword(password);
+    setSaving(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setSuccess("Password updated successfully.");
+    setPassword("");
+    setConfirm("");
+    toast.success("Password updated");
   };
 
-  const { error, success } = await searchParams;
-
-  const isOAuth = (user.app_metadata?.provider ?? "email") !== "email";
+  const handleSignOut = () => {
+    signOut();
+    toast.success("Signed out of all devices.");
+    router.push("/");
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar user={user} />
+      <Navbar />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-28 pb-16">
         <Link
           href="/dashboard"
@@ -58,82 +84,78 @@ export default async function SettingsPage({
         </p>
 
         {error && (
-          <div className="flex items-center gap-2.5 p-3 mb-6 rounded-lg bg-destructive/8 border border-destructive/20 text-sm text-destructive">
+          <div className="flex items-center gap-2.5 p-3 mb-6 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            {decodeURIComponent(error)}
+            {error}
           </div>
         )}
         {success && (
           <div className="flex items-center gap-2.5 p-3 mb-6 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            {decodeURIComponent(success)}
+            {success}
           </div>
         )}
 
-        {/* Password */}
         <Card className="border-border/50 mb-6">
           <CardHeader className="p-6 pb-0">
             <h2 className="font-heading font-semibold text-base">
               Change Password
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              {isOAuth
-                ? "You signed in with a social provider. Password changes are not available."
-                : "Choose a strong password of at least 8 characters."}
+              Choose a strong password of at least 8 characters.
             </p>
           </CardHeader>
           <CardContent className="p-6">
-            {isOAuth ? (
-              <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground">
-                Password management is handled by your sign-in provider.
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Min. 8 characters"
+                    autoComplete="new-password"
+                    className="pl-9"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                  />
+                </div>
               </div>
-            ) : (
-              <form className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="password">New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="Min. 8 characters"
-                      className="pl-9"
-                      required
-                      minLength={8}
-                    />
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm">Confirm New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="confirm"
+                    name="confirm"
+                    type="password"
+                    placeholder="Re-type your password"
+                    autoComplete="new-password"
+                    className="pl-9"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    required
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm">Confirm New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="confirm"
-                      name="confirm"
-                      type="password"
-                      placeholder="Re-type your password"
-                      className="pl-9"
-                      required
-                    />
-                  </div>
-                </div>
+              </div>
 
-                <Separator className="opacity-30" />
+              <Separator className="opacity-30" />
 
-                <Button
-                  type="button"
-                  disabled
-                  className="gradient-primary border-0 text-white shadow-sm opacity-70 cursor-not-allowed"
-                >
-                  Update Password (UI mode)
-                </Button>
-              </form>
-            )}
+              <Button
+                type="submit"
+                className="gradient-primary border-0 text-white shadow-sm"
+                disabled={saving}
+              >
+                {saving ? "Updating…" : "Update Password"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
-        {/* Sign out */}
         <Card className="border-border/50">
           <CardHeader className="p-6 pb-0">
             <h2 className="font-heading font-semibold text-base">Session</h2>
@@ -146,14 +168,22 @@ export default async function SettingsPage({
             <Button
               type="button"
               variant="outline"
-              disabled
-              className="gap-2 text-destructive border-destructive/30 opacity-70 cursor-not-allowed"
+              onClick={handleSignOut}
+              className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
             >
-              <LogOut className="w-4 h-4" /> Sign out of all devices (UI mode)
+              <LogOut className="w-4 h-4" /> Sign out
             </Button>
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <RouteGuard>
+      <SettingsContent />
+    </RouteGuard>
   );
 }

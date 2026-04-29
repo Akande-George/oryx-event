@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Menu,
   X,
@@ -11,6 +11,8 @@ import {
   LogOut,
   LayoutDashboard,
   Shield,
+  User as UserIcon,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -24,61 +26,36 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-
-type NavbarUser = {
-  id?: string;
-  email?: string | null;
-  user_metadata?: {
-    full_name?: string;
-    role?: string;
-  };
-  app_metadata?: {
-    provider?: string;
-  };
-};
+import { useAuth } from "@/lib/auth/context";
+import { toast } from "sonner";
 
 const navLinks = [{ href: "/events", label: "Events" }];
 
-export default function Navbar({
-  user: userProp,
-}: {
-  user?: NavbarUser | null;
-}) {
+export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<NavbarUser | null | undefined>(userProp);
+  const { user, isAdmin, signOut } = useAuth();
 
-  async function handleSignOut() {
-    setUser(null);
+  function handleSignOut() {
+    signOut();
+    toast.success("Signed out successfully.");
     router.push("/");
-    router.refresh();
   }
 
-  useEffect(() => {
-    // If user was passed as a prop, trust it
-    if (userProp !== undefined) {
-      setUser(userProp);
-      return;
-    }
-    setUser(null);
-  }, [userProp]);
-
-  const fullName =
-    (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const fullName = user?.full_name ?? user?.email ?? "";
   const initials =
     fullName
       .split(" ")
-      .map((n: string) => n[0])
+      .map((n) => n[0])
       .slice(0, 2)
       .join("")
       .toUpperCase() || "U";
-  const isAdmin = user?.user_metadata?.role === "admin";
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
+    handler();
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
@@ -96,7 +73,7 @@ export default function Navbar({
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <Image src="/logo.png" alt="Logo" width={32} height={32} />
+            <Image src="/logo.png" alt="Oryx Group" width={32} height={32} />
           </Link>
 
           {/* Desktop nav */}
@@ -146,16 +123,22 @@ export default function Navbar({
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-56">
                   <div className="px-3 py-2">
-                    <p className="text-sm font-medium">{fullName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {user?.email}
+                    <p className="text-sm font-medium truncate">{fullName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem render={<Link href="/dashboard" />}>
                     <LayoutDashboard className="w-4 h-4" /> My Tickets
+                  </DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/dashboard/profile" />}>
+                    <UserIcon className="w-4 h-4" /> Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/dashboard/settings" />}>
+                    <SettingsIcon className="w-4 h-4" /> Settings
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem render={<Link href="/admin" />}>
@@ -240,6 +223,18 @@ export default function Navbar({
                       {link.label}
                     </Link>
                   ))}
+                  <Link
+                    href="/search"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3",
+                      pathname.startsWith("/search")
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    <Search className="w-4 h-4" /> Search
+                  </Link>
                   {user && (
                     <>
                       <Link
@@ -247,12 +242,24 @@ export default function Navbar({
                         onClick={() => setMobileOpen(false)}
                         className={cn(
                           "px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3",
-                          pathname.startsWith("/dashboard")
+                          pathname === "/dashboard"
                             ? "bg-primary/15 text-primary"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                         )}
                       >
                         <LayoutDashboard className="w-4 h-4" /> My Tickets
+                      </Link>
+                      <Link
+                        href="/dashboard/profile"
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          "px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3",
+                          pathname === "/dashboard/profile"
+                            ? "bg-primary/15 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                        )}
+                      >
+                        <UserIcon className="w-4 h-4" /> Profile
                       </Link>
                       {isAdmin && (
                         <Link

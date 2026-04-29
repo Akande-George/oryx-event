@@ -32,7 +32,7 @@ const CATEGORIES: EventCategory[] = [
   "Music", "Sports", "Arts", "Food & Drink", "Business", "Technology", "Comedy", "Fashion", "Other",
 ];
 
-const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan"];
+const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan", "Abuja"];
 
 const SORT_OPTIONS = [
   { value: "date-asc", label: "Date: Soonest" },
@@ -163,7 +163,8 @@ export default function EventsPage() {
           <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">Discover</p>
           <h1 className="font-heading font-bold text-4xl sm:text-5xl text-foreground mb-4">All Events</h1>
           <p className="text-muted-foreground max-w-xl">
-            Explore hand-picked experiences across Qatar. Filter by category, location or date to find your perfect event.
+            Explore hand-picked experiences across Qatar and Africa. Filter by
+            category, location or date to find your perfect event.
           </p>
         </div>
       </div>
