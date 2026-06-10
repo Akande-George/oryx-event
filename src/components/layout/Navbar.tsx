@@ -29,7 +29,10 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth/context";
 import { toast } from "sonner";
 
-const navLinks = [{ href: "/events", label: "Events" }];
+const navLinks = [
+  { href: "/events", label: "Events" },
+  { href: "/hotels", label: "Hotels" },
+];
 
 export default function Navbar() {
   const pathname = usePathname();

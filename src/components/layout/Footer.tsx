@@ -93,9 +93,9 @@ export default function Footer() {
             <ul className="space-y-3">
               {[
                 { label: "All Events", href: "/events" },
+                { label: "Hotels & Stays", href: "/hotels" },
                 { label: "Music", href: "/events?category=Music" },
                 { label: "Technology", href: "/events?category=Technology" },
-                { label: "Arts", href: "/events?category=Arts" },
                 {
                   label: "Food & Drink",
                   href: "/events?category=Food+%26+Drink",

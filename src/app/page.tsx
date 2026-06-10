@@ -1,22 +1,18 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   ArrowRight,
   Calendar,
   ChevronRight,
   Shield,
-  Star,
-  Ticket,
   Users,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AnimatedEventGrid from "@/components/events/AnimatedEventGrid";
+import HeroSection from "@/components/ui/hero-section";
 import { mockEvents } from "@/lib/mock-data";
-import { formatDate } from "@/lib/utils";
 
 const stats = [
   { label: "Events Hosted", value: "500+", icon: Calendar },
@@ -64,7 +60,6 @@ const categories = [
   },
 ];
 
-const featuredEvent = mockEvents[0];
 const upcomingEvents = mockEvents.slice(1, 4);
 
 export default function HomePage() {
@@ -73,121 +68,7 @@ export default function HomePage() {
       <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden gradient-hero pt-16">
-        {/* Decorative blobs */}
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary/8 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-secondary/8 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center py-20">
-          {/* Left — Copy */}
-          <div>
-            <Badge className="mb-6 bg-primary/20 text-primary border-primary/30 px-3 py-1.5 text-sm font-medium">
-              <Star className="w-3.5 h-3.5 mr-1.5" /> Premium Event Management
-            </Badge>
-            <h1 className="font-heading font-bold text-5xl sm:text-6xl lg:text-7xl text-foreground leading-[1.06] mb-6">
-              Where Great{" "}
-              <span className="relative inline-block">
-                <span className="relative z-10 text-primary">Moments</span>
-                <span className="absolute inset-x-0 bottom-1 h-3 bg-primary/15 -rotate-1 rounded" />
-              </span>{" "}
-              Begin.
-            </h1>
-            <p className="text-lg text-muted-foreground leading-relaxed max-w-lg mb-8">
-              Discover the finest events across Qatar and Africa — from
-              exclusive jazz galas to tech summits. Book your tickets in seconds
-              and arrive in style.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                size="lg"
-                className="gradient-primary border-0 text-white shadow-xl shadow-primary/30 hover:opacity-90 px-7"
-                asChild
-              >
-                <Link href="/events">
-                  Explore Events <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="border-border/50 bg-background/50 backdrop-blur-sm"
-              >
-                <Link href="/auth/signup">Create Account</Link>
-              </Button>
-            </div>
-
-            {/* Avatars */}
-            <div className="flex items-center gap-3 mt-8">
-              <div className="flex -space-x-2">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={`avatar-${i}`}
-                    className="w-8 h-8 rounded-full border-2 border-background bg-gradient-to-br from-primary to-secondary"
-                    style={{ zIndex: 4 - i }}
-                  />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">2,400+</span>{" "}
-                tickets booked this week
-              </p>
-            </div>
-          </div>
-
-          {/* Right — Featured event card */}
-          <div className="hidden lg:block">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl blur-xl" />
-              <div className="relative glass-card overflow-hidden rounded-3xl border-black/8">
-                <div className="relative h-64">
-                  <Image
-                    src={featuredEvent.image_url}
-                    alt={featuredEvent.title}
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <Badge className="bg-primary/90 text-white border-0 mb-2 text-xs">
-                      Featured Event
-                    </Badge>
-                    <h3 className="font-heading font-bold text-white text-lg leading-snug">
-                      {featuredEvent.title}
-                    </h3>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-3.5 h-3.5 text-primary" />
-                      {formatDate(featuredEvent.date)}
-                    </div>
-                  </div>
-                  <Button
-                    className="w-full gradient-primary border-0 text-white"
-                    asChild
-                  >
-                    <Link href={`/events/${featuredEvent.id}`}>
-                      Get Tickets <Ticket className="w-3.5 h-3.5 ml-1.5" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Floating badge */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-xl px-3 py-2 border border-black/8 shadow-md">
-                <div className="flex items-center gap-1.5 text-xs text-foreground">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                  <span className="font-semibold">4.9</span>
-                  <span className="text-muted-foreground">rating</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* ── Stats ─────────────────────────────────────────── */}
       <section className="py-16 border-y border-border bg-slate-50/80">

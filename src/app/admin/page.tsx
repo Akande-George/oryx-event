@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   BarChart3, Calendar, Edit, Eye, LayoutDashboard,
   Package, Plus, Settings, Ticket, Trash2, TrendingUp, Users, CheckCircle2, Clock,
-  XCircle, Download, Mail, X
+  XCircle, Download, Mail, X, Building2, BedDouble, MapPin, Star, CalendarDays, Phone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { mockEvents, mockPackages, mockOrders } from "@/lib/mock-data";
-import { formatDate, formatPrice } from "@/lib/utils";
-import { EventCategory, TicketPackage, Order } from "@/types";
+import { mockEvents, mockPackages, mockOrders, mockHotels, mockRoomTypes, mockHotelBookings } from "@/lib/mock-data";
+import { formatDate, formatPrice, formatDateShort } from "@/lib/utils";
+import { EventCategory, TicketPackage, Order, Hotel, RoomType, HotelBooking } from "@/types";
 import Image from "next/image";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { useAuth } from "@/lib/auth/context";
@@ -32,7 +32,9 @@ const CATEGORIES: EventCategory[] = [
   "Music", "Sports", "Arts", "Food & Drink", "Business", "Technology", "Comedy", "Fashion", "Other",
 ];
 
-type Section = "dashboard" | "events" | "packages" | "orders" | "attendees" | "analytics";
+type Section =
+  | "dashboard" | "events" | "packages" | "orders" | "attendees" | "analytics"
+  | "hotels" | "bookings";
 
 const navItems: { id: Section; icon: React.ElementType; label: string }[] = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -40,6 +42,8 @@ const navItems: { id: Section; icon: React.ElementType; label: string }[] = [
   { id: "packages", icon: Package, label: "Packages" },
   { id: "orders", icon: Ticket, label: "Orders" },
   { id: "attendees", icon: Users, label: "Attendees" },
+  { id: "hotels", icon: Building2, label: "Hotels" },
+  { id: "bookings", icon: BedDouble, label: "Bookings" },
   { id: "analytics", icon: BarChart3, label: "Analytics" },
 ];
 
@@ -49,8 +53,12 @@ const sectionTitles: Record<Section, { title: string; subtitle: string }> = {
   packages: { title: "Packages", subtitle: "Ticket tiers across all events" },
   orders: { title: "Orders", subtitle: "All ticket purchase records" },
   attendees: { title: "Attendees", subtitle: "People who have booked tickets" },
+  hotels: { title: "Hotels", subtitle: "Manage hotel listings and rooms" },
+  bookings: { title: "Hotel Bookings", subtitle: "Incoming stay requests to fulfil" },
   analytics: { title: "Analytics", subtitle: "Sales and revenue breakdowns" },
 };
+
+const STAR_OPTIONS = ["5", "4", "3", "2", "1"];
 
 function AdminDashboardContent() {
   const { user, signOut } = useAuth();
@@ -81,6 +89,136 @@ function AdminDashboardContent() {
   // Order / Attendee detail dialogs
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedAttendee, setSelectedAttendee] = useState<ReturnType<typeof buildAttendees>[number] | null>(null);
+
+  // ── Hotels state ──
+  const [hotels, setHotels] = useState<Hotel[]>(mockHotels);
+  const [hotelRooms, setHotelRooms] = useState<Record<string, RoomType[]>>({ ...mockRoomTypes });
+  const [bookings, setBookings] = useState<HotelBooking[]>([...mockHotelBookings]);
+
+  const [createHotelOpen, setCreateHotelOpen] = useState(false);
+  const [newHotel, setNewHotel] = useState({
+    name: "", city: "", location: "", address: "",
+    star_rating: "5", description: "", image_url: "", amenities: "",
+  });
+
+  const [deleteHotelId, setDeleteHotelId] = useState<string | null>(null);
+
+  const [editHotelId, setEditHotelId] = useState<string | null>(null);
+  const [editHotel, setEditHotel] = useState({
+    name: "", city: "", location: "", address: "",
+    star_rating: "5", description: "", image_url: "", amenities: "",
+  });
+
+  const [addRoomOpen, setAddRoomOpen] = useState(false);
+  const [newRoom, setNewRoom] = useState({
+    hotel_id: "", name: "", price_per_night: "", capacity: "", beds: "", amenities: "",
+  });
+
+  const [selectedBooking, setSelectedBooking] = useState<HotelBooking | null>(null);
+
+  const handleCreateHotel = () => {
+    if (!newHotel.name || !newHotel.city) return;
+    const id = `h-${Date.now()}`;
+    setHotels((prev) => [
+      {
+        id,
+        name: newHotel.name,
+        description: newHotel.description,
+        location: newHotel.location || `${newHotel.city}`,
+        city: newHotel.city,
+        address: newHotel.address,
+        image_url: newHotel.image_url || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80",
+        star_rating: parseInt(newHotel.star_rating, 10),
+        amenities: newHotel.amenities ? newHotel.amenities.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        is_featured: false,
+        is_published: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+    setHotelRooms((prev) => ({ ...prev, [id]: [] }));
+    setCreateHotelOpen(false);
+    setNewHotel({ name: "", city: "", location: "", address: "", star_rating: "5", description: "", image_url: "", amenities: "" });
+  };
+
+  const handleEditHotelOpen = (hotel: Hotel) => {
+    setEditHotelId(hotel.id);
+    setEditHotel({
+      name: hotel.name,
+      city: hotel.city,
+      location: hotel.location,
+      address: hotel.address,
+      star_rating: String(hotel.star_rating),
+      description: hotel.description,
+      image_url: hotel.image_url,
+      amenities: hotel.amenities.join(", "),
+    });
+  };
+
+  const handleEditHotelSave = () => {
+    if (!editHotelId || !editHotel.name) return;
+    setHotels((prev) => prev.map((h) =>
+      h.id === editHotelId
+        ? {
+            ...h,
+            name: editHotel.name,
+            city: editHotel.city,
+            location: editHotel.location,
+            address: editHotel.address,
+            star_rating: parseInt(editHotel.star_rating, 10),
+            description: editHotel.description,
+            image_url: editHotel.image_url,
+            amenities: editHotel.amenities ? editHotel.amenities.split(",").map((s) => s.trim()).filter(Boolean) : [],
+            updated_at: new Date().toISOString(),
+          }
+        : h
+    ));
+    setEditHotelId(null);
+  };
+
+  const handleDeleteHotel = (id: string) => {
+    setHotels((prev) => prev.filter((h) => h.id !== id));
+    setHotelRooms((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setDeleteHotelId(null);
+  };
+
+  const handleAddRoom = () => {
+    if (!newRoom.hotel_id || !newRoom.name || !newRoom.price_per_night || !newRoom.capacity) return;
+    const room: RoomType = {
+      id: `rm-${Date.now()}`,
+      hotel_id: newRoom.hotel_id,
+      name: newRoom.name,
+      price_per_night: parseFloat(newRoom.price_per_night),
+      capacity: parseInt(newRoom.capacity, 10),
+      beds: newRoom.beds || "1 King",
+      amenities: newRoom.amenities ? newRoom.amenities.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      is_available: true,
+      created_at: new Date().toISOString(),
+    };
+    setHotelRooms((prev) => ({
+      ...prev,
+      [newRoom.hotel_id]: [...(prev[newRoom.hotel_id] ?? []), room],
+    }));
+    setAddRoomOpen(false);
+    setNewRoom({ hotel_id: "", name: "", price_per_night: "", capacity: "", beds: "", amenities: "" });
+  };
+
+  const handleConfirmBooking = (id: string) => {
+    setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "confirmed" as const } : b));
+    if (selectedBooking?.id === id) setSelectedBooking((b) => b ? { ...b, status: "confirmed" } : b);
+  };
+
+  const handleCancelBooking = (id: string) => {
+    setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "cancelled" as const } : b));
+    if (selectedBooking?.id === id) setSelectedBooking((b) => b ? { ...b, status: "cancelled" } : b);
+  };
+
+  const pendingBookings = bookings.filter((b) => b.status === "pending").length;
 
   // Edit event
   const [editEventId, setEditEventId] = useState<string | null>(null);
@@ -247,6 +385,11 @@ function AdminDashboardContent() {
                   {orders.length}
                 </span>
               )}
+              {id === "bookings" && pendingBookings > 0 && (
+                <span className="ml-auto text-xs bg-secondary text-white rounded-full px-1.5 py-0.5 leading-none">
+                  {pendingBookings}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -401,6 +544,114 @@ function AdminDashboardContent() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          )}
+          {section === "hotels" && (
+            <div className="flex items-center gap-2 shrink-0">
+              <Dialog open={addRoomOpen} onOpenChange={setAddRoomOpen}>
+                <DialogTrigger render={<Button variant="outline" className="gap-2 border-border/50" />}>
+                  <BedDouble className="w-4 h-4" /> <span className="hidden sm:inline">Add Room</span>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading">Add Room Type</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <Label>Hotel</Label>
+                      <Select value={newRoom.hotel_id} onValueChange={(v) => v && setNewRoom({ ...newRoom, hotel_id: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select hotel…" /></SelectTrigger>
+                        <SelectContent>
+                          {hotels.map((h) => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="room-name">Room Name</Label>
+                        <Input id="room-name" placeholder="Deluxe King" value={newRoom.name} onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="room-beds">Beds</Label>
+                        <Input id="room-beds" placeholder="1 King" value={newRoom.beds} onChange={(e) => setNewRoom({ ...newRoom, beds: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="room-price">Price / night (QAR)</Label>
+                        <Input id="room-price" type="number" min="0" placeholder="850" value={newRoom.price_per_night} onChange={(e) => setNewRoom({ ...newRoom, price_per_night: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="room-cap">Max Guests</Label>
+                        <Input id="room-cap" type="number" min="1" placeholder="2" value={newRoom.capacity} onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="room-amenities">Amenities (comma-separated)</Label>
+                      <Input id="room-amenities" placeholder="Free Wi-Fi, Sea View, Bathtub" value={newRoom.amenities} onChange={(e) => setNewRoom({ ...newRoom, amenities: e.target.value })} />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAddRoomOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddRoom} className="gradient-primary border-0 text-white">Add Room</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={createHotelOpen} onOpenChange={setCreateHotelOpen}>
+                <DialogTrigger render={<Button className="gradient-primary border-0 text-white shadow-sm gap-2" />}>
+                  <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create Hotel</span>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading">Create New Hotel</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="hotel-name">Hotel Name</Label>
+                      <Input id="hotel-name" placeholder="Waldorf Astoria Doha" value={newHotel.name} onChange={(e) => setNewHotel({ ...newHotel, name: e.target.value })} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="hotel-city">City</Label>
+                        <Input id="hotel-city" placeholder="Doha" value={newHotel.city} onChange={(e) => setNewHotel({ ...newHotel, city: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Star Rating</Label>
+                        <Select value={newHotel.star_rating} onValueChange={(v) => v && setNewHotel({ ...newHotel, star_rating: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STAR_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s} stars</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hotel-location">Location (City, Country)</Label>
+                      <Input id="hotel-location" placeholder="Doha, Qatar" value={newHotel.location} onChange={(e) => setNewHotel({ ...newHotel, location: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hotel-address">Address</Label>
+                      <Input id="hotel-address" placeholder="West Bay, Diplomatic District…" value={newHotel.address} onChange={(e) => setNewHotel({ ...newHotel, address: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hotel-desc">Description</Label>
+                      <Textarea id="hotel-desc" placeholder="Describe the hotel…" rows={3} value={newHotel.description} onChange={(e) => setNewHotel({ ...newHotel, description: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hotel-amenities">Amenities (comma-separated)</Label>
+                      <Input id="hotel-amenities" placeholder="Free Wi-Fi, Pool, Spa, Airport Transfer" value={newHotel.amenities} onChange={(e) => setNewHotel({ ...newHotel, amenities: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hotel-image">Image URL</Label>
+                      <Input id="hotel-image" placeholder="https://…" value={newHotel.image_url} onChange={(e) => setNewHotel({ ...newHotel, image_url: e.target.value })} />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setCreateHotelOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCreateHotel} className="gradient-primary border-0 text-white">Create Hotel</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           )}
         </div>
 
@@ -1041,6 +1292,429 @@ function AdminDashboardContent() {
                       </div>
                     </div>
                   )}
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+
+          {/* ── Hotels ────────────────────────────────────────── */}
+          {section === "hotels" && (
+            <div className="space-y-6">
+              {/* Hotels table */}
+              <Card className="border-border">
+                <CardHeader className="p-5 pb-3">
+                  <h2 className="font-heading font-semibold text-base">All Hotels ({hotels.length})</h2>
+                </CardHeader>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["Hotel", "City", "Rating", "Rooms", "Status", "Actions"].map((h) => (
+                          <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-3">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hotels.map((hotel) => {
+                        const rms = hotelRooms[hotel.id] ?? [];
+                        return (
+                          <tr key={hotel.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
+                                  <img src={hotel.image_url} alt={hotel.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground truncate max-w-[180px]">{hotel.name}</p>
+                                  <p className="text-xs text-muted-foreground truncate max-w-[180px]">{hotel.address}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <Badge variant="secondary" className="text-xs gap-1"><MapPin className="w-3 h-3" />{hotel.city}</Badge>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-0.5">
+                                {Array.from({ length: hotel.star_rating }).map((_, i) => (
+                                  <Star key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-xs font-medium">{rms.length}</td>
+                            <td className="px-5 py-4">
+                              <Badge className={hotel.is_published
+                                ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                : "bg-muted text-muted-foreground text-xs"
+                              }>
+                                {hotel.is_published ? "Live" : "Draft"}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-foreground" asChild>
+                                  <Link href={`/hotels/${hotel.id}`}><Eye className="w-3.5 h-3.5" /></Link>
+                                </Button>
+                                <Button
+                                  variant="ghost" size="icon"
+                                  className="w-7 h-7 text-muted-foreground hover:text-primary"
+                                  onClick={() => handleEditHotelOpen(hotel)}
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </Button>
+                                <Dialog open={deleteHotelId === hotel.id} onOpenChange={(open) => !open && setDeleteHotelId(null)}>
+                                  <DialogTrigger render={
+                                    <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteHotelId(hotel.id)} />
+                                  }>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Delete Hotel?</DialogTitle>
+                                    </DialogHeader>
+                                    <p className="text-sm text-muted-foreground">
+                                      Are you sure you want to delete <strong>{hotel.name}</strong> and its rooms? This action cannot be undone.
+                                    </p>
+                                    <DialogFooter className="mt-4">
+                                      <Button variant="outline" onClick={() => setDeleteHotelId(null)}>Cancel</Button>
+                                      <Button variant="destructive" onClick={() => handleDeleteHotel(hotel.id)}>Delete</Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Rooms per hotel */}
+              {hotels.map((hotel) => {
+                const rms = hotelRooms[hotel.id] ?? [];
+                if (!rms.length) return null;
+                return (
+                  <Card key={hotel.id} className="border-border">
+                    <CardHeader className="p-5 pb-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md overflow-hidden bg-muted shrink-0">
+                          <img src={hotel.image_url} alt={hotel.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-semibold text-sm">{hotel.name}</h3>
+                          <p className="text-xs text-muted-foreground">{rms.length} room type{rms.length > 1 ? "s" : ""} · {hotel.city}</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <div className="overflow-x-auto mt-3">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-y border-border">
+                            {["Room", "Beds", "Capacity", "Price / night", "Status", ""].map((h) => (
+                              <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-2.5">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rms.map((room) => (
+                            <tr key={room.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                              <td className="px-5 py-3 font-medium">{room.name}</td>
+                              <td className="px-5 py-3 text-muted-foreground">{room.beds}</td>
+                              <td className="px-5 py-3 text-muted-foreground">{room.capacity} guests</td>
+                              <td className="px-5 py-3 font-medium">{formatPrice(room.price_per_night)}</td>
+                              <td className="px-5 py-3">
+                                <Badge className={room.is_available
+                                  ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                  : "bg-red-50 text-red-700 border-red-200 text-xs"
+                                }>
+                                  {room.is_available ? "Available" : "Closed"}
+                                </Badge>
+                              </td>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary"
+                                    onClick={() => setHotelRooms((prev) => ({
+                                      ...prev,
+                                      [hotel.id]: (prev[hotel.id] ?? []).map((r) =>
+                                        r.id === room.id ? { ...r, is_available: !r.is_available } : r
+                                      ),
+                                    }))}
+                                    title={room.is_available ? "Close room" : "Open room"}
+                                  >
+                                    {room.is_available ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setHotelRooms((prev) => ({
+                                      ...prev,
+                                      [hotel.id]: (prev[hotel.id] ?? []).filter((r) => r.id !== room.id),
+                                    }))}
+                                    title="Delete room"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Edit Hotel Dialog */}
+          <Dialog open={!!editHotelId} onOpenChange={(open) => !open && setEditHotelId(null)}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="font-heading">Edit Hotel</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hotel-name">Hotel Name</Label>
+                  <Input id="edit-hotel-name" value={editHotel.name} onChange={(e) => setEditHotel({ ...editHotel, name: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-hotel-city">City</Label>
+                    <Input id="edit-hotel-city" value={editHotel.city} onChange={(e) => setEditHotel({ ...editHotel, city: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Star Rating</Label>
+                    <Select value={editHotel.star_rating} onValueChange={(v) => v && setEditHotel({ ...editHotel, star_rating: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STAR_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s} stars</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hotel-location">Location (City, Country)</Label>
+                  <Input id="edit-hotel-location" value={editHotel.location} onChange={(e) => setEditHotel({ ...editHotel, location: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hotel-address">Address</Label>
+                  <Input id="edit-hotel-address" value={editHotel.address} onChange={(e) => setEditHotel({ ...editHotel, address: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hotel-desc">Description</Label>
+                  <Textarea id="edit-hotel-desc" rows={3} value={editHotel.description} onChange={(e) => setEditHotel({ ...editHotel, description: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hotel-amenities">Amenities (comma-separated)</Label>
+                  <Input id="edit-hotel-amenities" value={editHotel.amenities} onChange={(e) => setEditHotel({ ...editHotel, amenities: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-hotel-image">Image URL</Label>
+                  <Input id="edit-hotel-image" placeholder="https://…" value={editHotel.image_url} onChange={(e) => setEditHotel({ ...editHotel, image_url: e.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditHotelId(null)}>Cancel</Button>
+                <Button onClick={handleEditHotelSave} className="gradient-primary border-0 text-white">Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* ── Bookings (hotel stay requests) ────────────────── */}
+          {section === "bookings" && (
+            <>
+              <Card className="border-border">
+                <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between">
+                  <h2 className="font-heading font-semibold text-base">Booking Requests ({bookings.length})</h2>
+                  <div className="flex gap-2">
+                    <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs gap-1">
+                      <Clock className="w-3 h-3" />
+                      {bookings.filter((b) => b.status === "pending").length} pending
+                    </Badge>
+                    <Badge className="bg-green-50 text-green-700 border-green-200 text-xs gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {bookings.filter((b) => b.status === "confirmed").length} confirmed
+                    </Badge>
+                    <Badge className="bg-red-50 text-red-700 border-red-200 text-xs gap-1">
+                      <XCircle className="w-3 h-3" />
+                      {bookings.filter((b) => b.status === "cancelled").length} cancelled
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {["Ref", "Guest", "Hotel", "Room", "Dates", "Nights", "Est. Total", "Status", "Actions"].map((h) => (
+                          <th key={h} className="text-left text-xs text-muted-foreground font-medium px-5 py-3">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.map((booking) => {
+                        const hotel = hotels.find((h) => h.id === booking.hotel_id);
+                        const room = (hotelRooms[booking.hotel_id] ?? []).find((r) => r.id === booking.room_type_id);
+                        return (
+                          <tr
+                            key={booking.id}
+                            className="border-b border-border/40 hover:bg-muted/20 transition-colors cursor-pointer"
+                            onClick={() => setSelectedBooking(booking)}
+                          >
+                            <td className="px-5 py-3 text-xs font-mono text-muted-foreground">{booking.id}</td>
+                            <td className="px-5 py-3">
+                              <p className="font-medium text-sm">{booking.guest_name}</p>
+                              <p className="text-xs text-muted-foreground">{booking.guest_email}</p>
+                            </td>
+                            <td className="px-5 py-3 text-xs text-muted-foreground max-w-[150px]">
+                              <span className="truncate block">{hotel?.name ?? "—"}</span>
+                            </td>
+                            <td className="px-5 py-3">
+                              <Badge variant="secondary" className="text-xs">{room?.name ?? "—"}</Badge>
+                            </td>
+                            <td className="px-5 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                              {formatDateShort(booking.check_in)} → {formatDateShort(booking.check_out)}
+                            </td>
+                            <td className="px-5 py-3 text-center text-sm font-medium">{booking.nights}</td>
+                            <td className="px-5 py-3 font-medium text-sm">{formatPrice(booking.estimated_total)}</td>
+                            <td className="px-5 py-3">
+                              <Badge className={
+                                booking.status === "confirmed" ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                : booking.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200 text-xs"
+                                : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                              }>
+                                {booking.status}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1">
+                                {booking.status !== "confirmed" && (
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-7 px-2 text-xs text-green-700 hover:text-green-800 hover:bg-green-50"
+                                    onClick={() => handleConfirmBooking(booking.id)}
+                                  >
+                                    <CheckCircle2 className="w-3 h-3 mr-1" /> Confirm
+                                  </Button>
+                                )}
+                                {booking.status !== "cancelled" && (
+                                  <Button
+                                    variant="ghost" size="sm"
+                                    className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-red-50"
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                  >
+                                    <X className="w-3 h-3 mr-1" /> Cancel
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Booking Detail Dialog */}
+              <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading">Booking Request</DialogTitle>
+                  </DialogHeader>
+                  {selectedBooking && (() => {
+                    const hotel = hotels.find((h) => h.id === selectedBooking.hotel_id);
+                    const room = (hotelRooms[selectedBooking.hotel_id] ?? []).find((r) => r.id === selectedBooking.room_type_id);
+                    return (
+                      <div className="space-y-4 py-1">
+                        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                          <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white text-sm font-bold shrink-0">
+                            {selectedBooking.guest_name?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm">{selectedBooking.guest_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{selectedBooking.guest_email}</p>
+                          </div>
+                          <Badge className={
+                            selectedBooking.status === "confirmed" ? "ml-auto bg-green-50 text-green-700 border-green-200 text-xs"
+                            : selectedBooking.status === "cancelled" ? "ml-auto bg-red-50 text-red-700 border-red-200 text-xs"
+                            : "ml-auto bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                          }>
+                            {selectedBooking.status}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground mb-0.5">Hotel</p>
+                            <p className="font-medium">{hotel?.name ?? "—"}</p>
+                            <p className="text-xs text-muted-foreground">{hotel?.address}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Room</p>
+                            <p>{room?.name ?? "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
+                            <p className="flex items-center gap-1"><Phone className="w-3 h-3 text-muted-foreground" />{selectedBooking.guest_phone}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Check-in</p>
+                            <p className="flex items-center gap-1"><CalendarDays className="w-3 h-3 text-primary" />{formatDate(selectedBooking.check_in)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Check-out</p>
+                            <p className="flex items-center gap-1"><CalendarDays className="w-3 h-3 text-secondary" />{formatDate(selectedBooking.check_out)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Rooms / Guests</p>
+                            <p>{selectedBooking.rooms} room{selectedBooking.rooms > 1 ? "s" : ""} · {selectedBooking.guests} guest{selectedBooking.guests > 1 ? "s" : ""}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Nights</p>
+                            <p>{selectedBooking.nights}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground mb-0.5">Estimated Total</p>
+                            <p className="font-heading font-bold text-foreground">{formatPrice(selectedBooking.estimated_total)}</p>
+                          </div>
+                          {selectedBooking.special_requests && (
+                            <div className="col-span-2">
+                              <p className="text-xs text-muted-foreground mb-0.5">Special Requests</p>
+                              <p className="text-sm bg-muted/40 rounded-lg p-2.5">{selectedBooking.special_requests}</p>
+                            </div>
+                          )}
+                        </div>
+                        <Separator className="opacity-30" />
+                        <div className="flex gap-2">
+                          {selectedBooking.status !== "confirmed" && (
+                            <Button
+                              className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white border-0"
+                              onClick={() => handleConfirmBooking(selectedBooking.id)}
+                            >
+                              <CheckCircle2 className="w-4 h-4" /> Confirm Booking
+                            </Button>
+                          )}
+                          {selectedBooking.status !== "cancelled" && (
+                            <Button
+                              variant="outline"
+                              className="flex-1 gap-2 text-destructive border-destructive/30 hover:bg-red-50"
+                              onClick={() => handleCancelBooking(selectedBooking.id)}
+                            >
+                              <X className="w-4 h-4" /> Decline
+                            </Button>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2"
+                          onClick={() => window.open(`mailto:${selectedBooking.guest_email}?subject=Your booking request for ${hotel?.name ?? "your stay"}`)}
+                        >
+                          <Mail className="w-4 h-4" /> Email Guest
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </DialogContent>
               </Dialog>
             </>
