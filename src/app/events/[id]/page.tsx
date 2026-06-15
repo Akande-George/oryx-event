@@ -292,7 +292,7 @@ export default function EventDetailPage({
                           <Calendar className="w-3.5 h-3.5 text-primary" />
                           <span>
                             {
-                              mockEvents.filter(
+                              allEvents.filter(
                                 (e) => e.organizer === event.organizer,
                               ).length
                             }{" "}
