@@ -1,12 +1,22 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeft, Calendar, Clock, MapPin, Share2, Heart, Users,
-  ChevronRight, Info, Mail, Globe, Star
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  Share2,
+  Heart,
+  Users,
+  ChevronRight,
+  Info,
+  Mail,
+  Globe,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,28 +25,71 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TicketPackageCard from "@/components/events/TicketPackageCard";
-import { mockEvents, mockPackages } from "@/lib/mock-data";
-import { TicketPackage } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import { Event, TicketPackage } from "@/types";
 import { formatDate, formatTime, cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EventDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [following, setFollowing] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<{ pkg: TicketPackage; qty: number } | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<{
+    pkg: TicketPackage;
+    qty: number;
+  } | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [packages, setPackages] = useState<TicketPackage[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
 
-  const event = mockEvents.find((e) => e.id === id);
-  if (!event) notFound();
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
 
-  const packages = mockPackages[id] ?? [];
+    async function loadEvent() {
+      const { data: liveEvent } = await supabase
+        .from("events")
+        .select("*, ticket_packages(*)")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (liveEvent) {
+        setEvent(liveEvent as Event);
+        setPackages((liveEvent as Event).ticket_packages ?? []);
+      }
+
+      const { data: liveAll } = await supabase
+        .from("events")
+        .select("id, title, organizer, venue, date, image_url")
+        .eq("is_published", true);
+
+      if (!mounted) return;
+      if (liveAll?.length) setAllEvents(liveAll as Event[]);
+    }
+
+    loadEvent();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  if (!event) {
+    notFound();
+  }
 
   // Organizer derived data
-  const organizerEvents = mockEvents.filter(
-    (e) => e.organizer === event.organizer && e.id !== event.id
+  const organizerEvents = allEvents.filter(
+    (e) => e.organizer === event?.organizer && e.id !== id,
   );
-  const organizerInitials = event.organizer
+  const organizerInitials = (event?.organizer ?? "")
     .split(" ")
     .map((w) => w[0])
     .join("")
@@ -66,7 +119,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Back button */}
         <div className="absolute top-20 left-4 sm:left-8">
-          <Button variant="outline" size="sm" asChild className="bg-black/40 border-white/20 text-white hover:bg-black/60 gap-2 backdrop-blur-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="bg-black/40 border-white/20 text-white hover:bg-black/60 gap-2 backdrop-blur-sm"
+          >
             <Link href="/events">
               <ArrowLeft className="w-4 h-4" /> Back
             </Link>
@@ -79,7 +137,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             variant="outline"
             size="icon"
             className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-sm"
-            onClick={() => navigator.share?.({ title: event.title, url: window.location.href })}
+            onClick={() =>
+              navigator.share?.({
+                title: event.title,
+                url: window.location.href,
+              })
+            }
           >
             <Share2 className="w-4 h-4" />
           </Button>
@@ -88,7 +151,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             size="icon"
             className={cn(
               "border-white/20 backdrop-blur-sm",
-              liked ? "bg-primary/80 text-white" : "bg-black/40 text-white hover:bg-black/60"
+              liked
+                ? "bg-primary/80 text-white"
+                : "bg-black/40 text-white hover:bg-black/60",
             )}
             onClick={() => setLiked(!liked)}
           >
@@ -105,25 +170,53 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             {/* Event header */}
             <div className="mb-8">
               <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className="bg-primary/20 text-primary border-primary/30">{event.category}</Badge>
-                {event.is_featured && <Badge className="bg-secondary/20 text-secondary border-secondary/30">Featured</Badge>}
+                <Badge className="bg-primary/20 text-primary border-primary/30">
+                  {event.category}
+                </Badge>
+                {event.is_featured && (
+                  <Badge className="bg-secondary/20 text-secondary border-secondary/30">
+                    Featured
+                  </Badge>
+                )}
               </div>
               <h1 className="font-heading font-bold text-3xl sm:text-4xl text-foreground mb-5 leading-tight">
                 {event.title}
               </h1>
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
-                  { icon: Calendar, label: "Date", value: formatDate(event.date), color: "text-primary" },
-                  { icon: Clock, label: "Time", value: `${formatTime(event.date)}${event.end_date ? ` – ${formatTime(event.end_date)}` : ""}`, color: "text-secondary" },
-                  { icon: MapPin, label: "Venue", value: event.venue, color: "text-accent" },
+                  {
+                    icon: Calendar,
+                    label: "Date",
+                    value: formatDate(event.date),
+                    color: "text-primary",
+                  },
+                  {
+                    icon: Clock,
+                    label: "Time",
+                    value: `${formatTime(event.date)}${event.end_date ? ` – ${formatTime(event.end_date)}` : ""}`,
+                    color: "text-secondary",
+                  },
+                  {
+                    icon: MapPin,
+                    label: "Venue",
+                    value: event.venue,
+                    color: "text-accent",
+                  },
                 ].map(({ icon: Icon, label, value, color }) => (
-                  <div key={label} className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div
+                    key={label}
+                    className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/50"
+                  >
                     <div className={cn("mt-0.5", color)}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-                      <p className="text-sm font-medium text-foreground">{value}</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">
+                        {label}
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {value}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -138,11 +231,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </TabsList>
 
               <TabsContent value="about" className="space-y-4">
-                <p className="text-muted-foreground leading-relaxed">{event.description}</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  {event.description}
+                </p>
                 <div className="flex items-start gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20">
                   <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    Dress code and entry requirements may apply. Please arrive at least 30 minutes before the event starts.
+                    Dress code and entry requirements may apply. Please arrive
+                    at least 30 minutes before the event starts.
                   </p>
                 </div>
               </TabsContent>
@@ -151,10 +247,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="rounded-xl overflow-hidden border border-border/50 aspect-video bg-muted/50 flex items-center justify-center">
                   <div className="text-center p-8">
                     <MapPin className="w-10 h-10 text-primary mx-auto mb-3" />
-                    <p className="font-heading font-semibold text-lg mb-1">{event.venue}</p>
-                    <p className="text-sm text-muted-foreground">{event.location}</p>
-                    <Button variant="outline" size="sm" className="mt-4 gap-2" asChild>
-                      <a href={`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`} target="_blank" rel="noreferrer">
+                    <p className="font-heading font-semibold text-lg mb-1">
+                      {event.venue}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {event.location}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 gap-2"
+                      asChild
+                    >
+                      <a
+                        href={`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         Open in Maps <ChevronRight className="w-3.5 h-3.5" />
                       </a>
                     </Button>
@@ -167,15 +276,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="p-5 rounded-xl border border-border bg-white">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-                      <span className="text-white font-heading font-bold text-lg">{organizerInitials}</span>
+                      <span className="text-white font-heading font-bold text-lg">
+                        {organizerInitials}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-heading font-bold text-lg text-foreground">{event.organizer}</h3>
-                      <p className="text-sm text-muted-foreground mb-3">Professional Event Organizer</p>
+                      <h3 className="font-heading font-bold text-lg text-foreground">
+                        {event.organizer}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Professional Event Organizer
+                      </p>
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Calendar className="w-3.5 h-3.5 text-primary" />
-                          <span>{mockEvents.filter((e) => e.organizer === event.organizer).length} events hosted</span>
+                          <span>
+                            {
+                              mockEvents.filter(
+                                (e) => e.organizer === event.organizer,
+                              ).length
+                            }{" "}
+                            events hosted
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
@@ -196,7 +318,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       size="sm"
                       className={cn(
                         "gap-2 border-0 text-white",
-                        following ? "bg-secondary hover:bg-secondary/90" : "gradient-primary"
+                        following
+                          ? "bg-secondary hover:bg-secondary/90"
+                          : "gradient-primary",
                       )}
                       onClick={() => setFollowing(!following)}
                     >
@@ -207,7 +331,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       size="sm"
                       variant="outline"
                       className="gap-2 border-border/50"
-                      onClick={() => window.open(`mailto:events@oryxevent.com?subject=Enquiry about ${encodeURIComponent(event.title)}`)}
+                      onClick={() =>
+                        window.open(
+                          `mailto:events@oryxevent.com?subject=Enquiry about ${encodeURIComponent(event.title)}`,
+                        )
+                      }
                     >
                       <Mail className="w-3.5 h-3.5" /> Contact
                     </Button>
@@ -215,7 +343,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       size="sm"
                       variant="outline"
                       className="gap-2 border-border/50"
-                      onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(event.organizer)}`, "_blank")}
+                      onClick={() =>
+                        window.open(
+                          `https://www.google.com/search?q=${encodeURIComponent(event.organizer)}`,
+                          "_blank",
+                        )
+                      }
                     >
                       <Globe className="w-3.5 h-3.5" /> Website
                     </Button>
@@ -236,11 +369,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                           className="flex items-center gap-3 p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-muted/20 transition-all group"
                         >
                           <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
-                            <img src={e.image_url} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img
+                              src={e.image_url}
+                              alt={e.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-foreground truncate">{e.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{formatDate(e.date)} · {e.venue}</p>
+                            <p className="font-medium text-sm text-foreground truncate">
+                              {e.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {formatDate(e.date)} · {e.venue}
+                            </p>
                           </div>
                           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
                         </Link>
@@ -261,25 +402,34 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* Ticket sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-4">
-              <h2 className="font-heading font-bold text-xl text-foreground">Select Tickets</h2>
+              <h2 className="font-heading font-bold text-xl text-foreground">
+                Select Tickets
+              </h2>
               <p className="text-sm text-muted-foreground">
                 Choose your preferred ticket package below.
               </p>
               {packages.length === 0 ? (
                 <div className="text-center py-8 bg-muted/30 rounded-2xl border border-border/50">
-                  <p className="text-muted-foreground text-sm">No ticket packages available yet.</p>
+                  <p className="text-muted-foreground text-sm">
+                    No ticket packages available yet.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {packages.map((pkg) => (
-                    <TicketPackageCard key={pkg.id} pkg={pkg} onSelect={handleSelectPackage} />
+                    <TicketPackageCard
+                      key={pkg.id}
+                      pkg={pkg}
+                      onSelect={handleSelectPackage}
+                    />
                   ))}
                 </div>
               )}
               <Separator className="opacity-30" />
               <p className="text-xs text-muted-foreground flex items-start gap-1.5">
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-                All ticket sales are final. Refunds are subject to the organizer&apos;s policy.
+                All ticket sales are final. Refunds are subject to the
+                organizer&apos;s policy.
               </p>
             </div>
           </div>

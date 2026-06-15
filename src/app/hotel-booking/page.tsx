@@ -1,12 +1,23 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
-  ArrowLeft, Check, User, Mail, Phone, MessageSquare,
-  CalendarDays, BedDouble, Users, MapPin, Send, ShieldCheck,
+  ArrowLeft,
+  Check,
+  User,
+  Mail,
+  Phone,
+  MessageSquare,
+  CalendarDays,
+  BedDouble,
+  Users,
+  MapPin,
+  Send,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +27,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import Navbar from "@/components/layout/Navbar";
-import { mockHotels, mockRoomTypes } from "@/lib/mock-data";
+import { createHotelBooking } from "@/lib/supabase/actions";
+import { createClient } from "@/lib/supabase/client";
+import { Hotel, RoomType } from "@/types";
 import { formatPrice, formatDateShort, nightsBetween, cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 function HotelBookingContent() {
   const params = useSearchParams();
@@ -27,27 +41,103 @@ function HotelBookingContent() {
   const checkOut = params.get("checkOut") ?? "";
   const rooms = parseInt(params.get("rooms") ?? "1", 10);
   const guests = parseInt(params.get("guests") ?? "1", 10);
-
-  const hotel = mockHotels.find((h) => h.id === hotelId);
-  const room = (mockRoomTypes[hotelId] ?? []).find((r) => r.id === roomId);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [room, setRoom] = useState<RoomType | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
   const nights = nightsBetween(checkIn, checkOut);
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", requests: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    requests: "",
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+
+    async function loadBookingData() {
+      setLoadingSession(true);
+
+      const [{ data: liveHotel }, { data: liveRoom }, { data: authUser }] =
+        await Promise.all([
+          supabase.from("hotels").select("*").eq("id", hotelId).maybeSingle(),
+          supabase
+            .from("room_types")
+            .select("*")
+            .eq("id", roomId)
+            .maybeSingle(),
+          supabase.auth.getUser(),
+        ]);
+
+      if (!mounted) return;
+
+      if (liveHotel) setHotel(liveHotel as Hotel);
+      if (liveRoom) setRoom(liveRoom as RoomType);
+
+      if (authUser.user?.email) {
+        setForm((current) => ({
+          ...current,
+          email: current.email || authUser.user?.email || "",
+          name:
+            current.name ||
+            (typeof authUser.user?.user_metadata?.full_name === "string"
+              ? authUser.user.user_metadata.full_name
+              : ""),
+        }));
+      }
+
+      setLoadingSession(false);
+    }
+
+    loadBookingData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [hotelId, roomId]);
 
   const estimatedTotal = (room?.price_per_night ?? 0) * nights * rooms;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate sending the request to the Oryx team (admin Bookings inbox).
-    await new Promise((r) => setTimeout(r, 1500));
+
+    if (!hotel || !room) {
+      toast.error("This room is no longer available.");
+      setLoading(false);
+      return;
+    }
+
+    const result = await createHotelBooking({
+      hotelId: hotel.id,
+      roomTypeId: room.id,
+      guestName: form.name,
+      guestEmail: form.email,
+      guestPhone: form.phone,
+      checkIn,
+      checkOut,
+      nights,
+      rooms,
+      guests,
+      estimatedTotal,
+      specialRequests: form.requests,
+    });
+
+    if (result.error) {
+      toast.error(result.error);
+      setLoading(false);
+      return;
+    }
+
     setLoading(false);
     setSubmitted(true);
   };
 
-  if (!hotel || !room || nights <= 0) {
+  if (!loadingSession && (!hotel || !room || nights <= 0)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -55,6 +145,17 @@ function HotelBookingContent() {
           <Button asChild>
             <Link href="/hotels">Back to Hotels</Link>
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingSession || !hotel || !room) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+          <div className="animate-pulse rounded-3xl border border-border/50 bg-card h-72" />
         </div>
       </div>
     );
@@ -73,7 +174,12 @@ function HotelBookingContent() {
             className="w-20 h-20 rounded-full bg-secondary/20 border-2 border-secondary flex items-center justify-center mx-auto mb-6"
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 220, damping: 18, delay: 0.15 }}
+            transition={{
+              type: "spring",
+              stiffness: 220,
+              damping: 18,
+              delay: 0.15,
+            }}
           >
             <Check className="w-10 h-10 text-secondary" />
           </motion.div>
@@ -81,14 +187,15 @@ function HotelBookingContent() {
             Request received!
           </h1>
           <p className="text-muted-foreground mb-2">
-            Thanks {form.name.split(" ")[0] || "there"} — your request to stay at{" "}
-            <span className="text-foreground font-medium">{hotel.name}</span> is
-            with our team.
+            Thanks {form.name.split(" ")[0] || "there"} — your request to stay
+            at <span className="text-foreground font-medium">{hotel.name}</span>{" "}
+            is with our team.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
             We&apos;ll confirm availability and complete the booking on your
-            behalf, then email <span className="text-foreground">{form.email}</span>{" "}
-            with the details — usually within 24 hours.
+            behalf, then email{" "}
+            <span className="text-foreground">{form.email}</span> with the
+            details — usually within 24 hours.
           </p>
 
           <Card className="mb-6 border-border/50 text-left">
@@ -113,7 +220,9 @@ function HotelBookingContent() {
               <Separator className="opacity-30" />
               <div className="flex justify-between font-semibold">
                 <span>Estimated total</span>
-                <span className="text-primary">{formatPrice(estimatedTotal)}</span>
+                <span className="text-primary">
+                  {formatPrice(estimatedTotal)}
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 Estimate only — final pricing is confirmed by our team.
@@ -122,7 +231,10 @@ function HotelBookingContent() {
           </Card>
 
           <div className="flex flex-col gap-3">
-            <Button className="gradient-primary border-0 text-white w-full gap-2" asChild>
+            <Button
+              className="gradient-primary border-0 text-white w-full gap-2"
+              asChild
+            >
               <Link href="/hotels">
                 <MapPin className="w-4 h-4" /> Browse More Hotels
               </Link>
@@ -186,7 +298,9 @@ function HotelBookingContent() {
                         id="booking-name"
                         placeholder="John Doe"
                         value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, name: e.target.value })
+                        }
                         className="pl-9"
                         required
                       />
@@ -201,7 +315,9 @@ function HotelBookingContent() {
                         type="email"
                         placeholder="john@example.com"
                         value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, email: e.target.value })
+                        }
                         className="pl-9"
                         required
                       />
@@ -216,7 +332,9 @@ function HotelBookingContent() {
                         type="tel"
                         placeholder="+974 0000 0000"
                         value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, phone: e.target.value })
+                        }
                         className="pl-9"
                         required
                       />
@@ -236,7 +354,9 @@ function HotelBookingContent() {
                         placeholder="Airport transfer, high floor, dietary needs, connecting rooms…"
                         rows={3}
                         value={form.requests}
-                        onChange={(e) => setForm({ ...form, requests: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, requests: e.target.value })
+                        }
                         className="pl-9"
                       />
                     </div>
@@ -281,7 +401,9 @@ function HotelBookingContent() {
                     <BedDouble className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
                     <div>
                       <p className="font-medium">{room.name}</p>
-                      <p className="text-xs text-muted-foreground">{room.beds}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {room.beds}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2.5">
@@ -317,11 +439,13 @@ function HotelBookingContent() {
                 <Separator className="opacity-30" />
                 <div className="flex justify-between font-bold">
                   <span>Estimated total</span>
-                  <span className="text-primary">{formatPrice(estimatedTotal)}</span>
+                  <span className="text-primary">
+                    {formatPrice(estimatedTotal)}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Estimate only. Final pricing is confirmed by our team before any
-                  charge.
+                  Estimate only. Final pricing is confirmed by our team before
+                  any charge.
                 </p>
                 <Badge
                   variant="secondary"

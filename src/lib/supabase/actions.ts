@@ -13,7 +13,7 @@ export async function signIn(formData: FormData) {
   // });
 
   // if (error) redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
-  
+
   // For UI development, any login succeeds
   revalidatePath("/", "layout");
   redirect("/dashboard");
@@ -48,7 +48,8 @@ export async function updateProfile(formData: FormData) {
     data: { full_name: fullName },
   });
 
-  if (error) redirect(`/dashboard/profile?error=${encodeURIComponent(error.message)}`);
+  if (error)
+    redirect(`/dashboard/profile?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/dashboard", "layout");
   redirect("/dashboard/profile?success=Profile+updated");
 }
@@ -64,7 +65,8 @@ export async function updatePassword(formData: FormData) {
 
   const { error } = await supabase.auth.updateUser({ password });
 
-  if (error) redirect(`/dashboard/settings?error=${encodeURIComponent(error.message)}`);
+  if (error)
+    redirect(`/dashboard/settings?error=${encodeURIComponent(error.message)}`);
   redirect("/dashboard/settings?success=Password+updated");
 }
 
@@ -105,4 +107,44 @@ export async function createOrder(data: {
   });
 
   return { order };
+}
+
+export async function createHotelBooking(data: {
+  hotelId: string;
+  roomTypeId: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  rooms: number;
+  guests: number;
+  estimatedTotal: number;
+  specialRequests?: string;
+}) {
+  const supabase = await createClient();
+  const { data: booking, error } = await supabase
+    .from("hotel_bookings")
+    .insert({
+      hotel_id: data.hotelId,
+      room_type_id: data.roomTypeId,
+      guest_name: data.guestName,
+      guest_email: data.guestEmail,
+      guest_phone: data.guestPhone,
+      check_in: data.checkIn,
+      check_out: data.checkOut,
+      nights: data.nights,
+      rooms: data.rooms,
+      guests: data.guests,
+      estimated_total: data.estimatedTotal,
+      special_requests: data.specialRequests ?? null,
+      status: "pending",
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  return { booking };
 }

@@ -31,7 +31,7 @@ function SettingsContent() {
 
   if (!user) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -46,7 +46,7 @@ function SettingsContent() {
     }
 
     setSaving(true);
-    const result = updatePassword(password);
+    const result = await updatePassword(password);
     setSaving(false);
 
     if (!result.ok) {
@@ -59,8 +59,8 @@ function SettingsContent() {
     toast.success("Password updated");
   };
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     toast.success("Signed out of all devices.");
     router.push("/");
   };

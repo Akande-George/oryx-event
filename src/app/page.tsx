@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AnimatedEventGrid from "@/components/events/AnimatedEventGrid";
-import HeroSection from "@/components/ui/hero-section";
-import { mockEvents } from "@/lib/mock-data";
+import HeroMonochrome from "@/components/ui/hero-monochrome";
+import { getEvents } from "@/lib/supabase/queries";
 
 const stats = [
   { label: "Events Hosted", value: "500+", icon: Calendar },
@@ -32,46 +32,52 @@ const categories = [
     label: "Technology",
     emoji: "💻",
     count: 18,
-    color: "from-blue-500/20 to-blue-500/5",
+    color: "from-secondary/20 to-secondary/5",
   },
   {
     label: "Arts",
     emoji: "🎨",
     count: 15,
-    color: "from-purple-500/20 to-purple-500/5",
+    color: "from-accent/30 to-accent/10",
   },
   {
     label: "Food & Drink",
     emoji: "🍽️",
     count: 21,
-    color: "from-secondary/20 to-secondary/5",
+    color: "from-primary/15 to-primary/5",
   },
   {
     label: "Sports",
     emoji: "⚽",
     count: 9,
-    color: "from-orange-500/20 to-orange-500/5",
+    color: "from-secondary/15 to-secondary/5",
   },
   {
     label: "Fashion",
     emoji: "👗",
     count: 11,
-    color: "from-pink-500/20 to-pink-500/5",
+    color: "from-accent/20 to-accent/5",
   },
 ];
 
-const upcomingEvents = mockEvents.slice(1, 4);
+export default async function HomePage() {
+  let upcomingEvents: Awaited<ReturnType<typeof getEvents>> = [];
 
-export default function HomePage() {
+  try {
+    upcomingEvents = (await getEvents()).slice(0, 3);
+  } catch {
+    // Supabase not reachable.
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <HeroSection />
+      <HeroMonochrome />
 
       {/* ── Stats ─────────────────────────────────────────── */}
-      <section className="py-16 border-y border-border bg-slate-50/80">
+      <section className="py-16 border-y border-border bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map(({ label, value, icon: Icon }) => (

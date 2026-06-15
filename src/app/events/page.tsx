@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, SlidersHorizontal, X, Calendar, MapPin, ChevronDown } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  Calendar,
+  MapPin,
+  ChevronDown,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +31,20 @@ import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import EventCard from "@/components/events/EventCard";
-import { mockEvents } from "@/lib/mock-data";
-import { EventCategory } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import { Event, EventCategory } from "@/types";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES: EventCategory[] = [
-  "Music", "Sports", "Arts", "Food & Drink", "Business", "Technology", "Comedy", "Fashion", "Other",
+  "Music",
+  "Sports",
+  "Arts",
+  "Food & Drink",
+  "Business",
+  "Technology",
+  "Comedy",
+  "Fashion",
+  "Other",
 ];
 
 const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan", "Abuja"];
@@ -42,40 +57,65 @@ const SORT_OPTIONS = [
 ];
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [location, setLocation] = useState<string>("all");
   const [sort, setSort] = useState("date-asc");
 
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+
+    async function loadEvents() {
+      const { data } = await supabase
+        .from("events")
+        .select("*, ticket_packages(*)")
+        .eq("is_published", true)
+        .order("date", { ascending: true });
+
+      if (!mounted || !data?.length) return;
+      setEvents(data as Event[]);
+    }
+
+    loadEvents();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const filtered = useMemo(() => {
-    let events = [...mockEvents];
+    let nextEvents = [...events];
 
     if (search.trim()) {
       const q = search.toLowerCase();
-      events = events.filter(
+      nextEvents = nextEvents.filter(
         (e) =>
           e.title.toLowerCase().includes(q) ||
           e.description.toLowerCase().includes(q) ||
-          e.location.toLowerCase().includes(q)
+          e.location.toLowerCase().includes(q),
       );
     }
 
     if (category !== "all") {
-      events = events.filter((e) => e.category === category);
+      nextEvents = nextEvents.filter((e) => e.category === category);
     }
 
     if (location !== "all") {
-      events = events.filter((e) => e.location.includes(location));
+      nextEvents = nextEvents.filter((e) => e.location.includes(location));
     }
 
-    events.sort((a, b) => {
-      if (sort === "date-asc") return new Date(a.date).getTime() - new Date(b.date).getTime();
-      if (sort === "date-desc") return new Date(b.date).getTime() - new Date(a.date).getTime();
+    nextEvents.sort((a, b) => {
+      if (sort === "date-asc")
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (sort === "date-desc")
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
       return 0;
     });
 
-    return events;
-  }, [search, category, location, sort]);
+    return nextEvents;
+  }, [events, search, category, location, sort]);
 
   const hasFilters = category !== "all" || location !== "all" || search.trim();
 
@@ -96,7 +136,7 @@ export default function EventsPage() {
               "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
               category === "all"
                 ? "bg-primary text-white border-primary"
-                : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground",
             )}
           >
             All
@@ -109,7 +149,7 @@ export default function EventsPage() {
                 "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
                 category === cat
                   ? "bg-primary text-white border-primary"
-                  : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground",
               )}
             >
               {cat}
@@ -129,7 +169,7 @@ export default function EventsPage() {
               "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
               location === "all"
                 ? "bg-secondary text-white border-secondary"
-                : "border-border/50 text-muted-foreground hover:border-secondary/30 hover:text-foreground"
+                : "border-border/50 text-muted-foreground hover:border-secondary/30 hover:text-foreground",
             )}
           >
             All Cities
@@ -142,7 +182,7 @@ export default function EventsPage() {
                 "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
                 location === loc
                   ? "bg-secondary text-white border-secondary"
-                  : "border-border/50 text-muted-foreground hover:border-secondary/30 hover:text-foreground"
+                  : "border-border/50 text-muted-foreground hover:border-secondary/30 hover:text-foreground",
               )}
             >
               {loc}
@@ -160,8 +200,12 @@ export default function EventsPage() {
       {/* Page header */}
       <div className="pt-28 pb-10 bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">Discover</p>
-          <h1 className="font-heading font-bold text-4xl sm:text-5xl text-foreground mb-4">All Events</h1>
+          <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
+            Discover
+          </p>
+          <h1 className="font-heading font-bold text-4xl sm:text-5xl text-foreground mb-4">
+            All Events
+          </h1>
           <p className="text-muted-foreground max-w-xl">
             Explore hand-picked experiences across Qatar and Africa. Filter by
             category, location or date to find your perfect event.
@@ -196,17 +240,28 @@ export default function EventsPage() {
             </SelectTrigger>
             <SelectContent>
               {SORT_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           {/* Mobile filter trigger */}
           <Sheet>
-            <SheetTrigger render={<Button variant="outline" className="sm:hidden border-border/50 gap-2" />}>
+            <SheetTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className="sm:hidden border-border/50 gap-2"
+                />
+              }
+            >
               <SlidersHorizontal className="w-4 h-4" /> Filters
               {hasFilters && (
-                <Badge className="ml-1 bg-primary text-white border-0 px-1.5 py-0.5 text-xs">•</Badge>
+                <Badge className="ml-1 bg-primary text-white border-0 px-1.5 py-0.5 text-xs">
+                  •
+                </Badge>
               )}
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-2xl">
@@ -215,7 +270,11 @@ export default function EventsPage() {
               </SheetHeader>
               <FilterPanel />
               {hasFilters && (
-                <Button variant="outline" onClick={clearFilters} className="w-full mt-6 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="w-full mt-6 gap-2"
+                >
                   <X className="w-4 h-4" /> Clear All Filters
                 </Button>
               )}
@@ -228,7 +287,9 @@ export default function EventsPage() {
           <aside className="hidden lg:block w-64 shrink-0">
             <div className="sticky top-24 space-y-1">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-heading font-semibold text-foreground">Filters</h3>
+                <h3 className="font-heading font-semibold text-foreground">
+                  Filters
+                </h3>
                 {hasFilters && (
                   <button
                     onClick={clearFilters}
@@ -250,7 +311,10 @@ export default function EventsPage() {
                 {search && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     <Search className="w-3 h-3" /> &ldquo;{search}&rdquo;
-                    <button onClick={() => setSearch("")} className="ml-1 hover:text-foreground">
+                    <button
+                      onClick={() => setSearch("")}
+                      className="ml-1 hover:text-foreground"
+                    >
                       <X className="w-3 h-3" />
                     </button>
                   </Badge>
@@ -258,7 +322,10 @@ export default function EventsPage() {
                 {category !== "all" && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     {category}
-                    <button onClick={() => setCategory("all")} className="ml-1 hover:text-foreground">
+                    <button
+                      onClick={() => setCategory("all")}
+                      className="ml-1 hover:text-foreground"
+                    >
                       <X className="w-3 h-3" />
                     </button>
                   </Badge>
@@ -266,7 +333,10 @@ export default function EventsPage() {
                 {location !== "all" && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     <MapPin className="w-3 h-3" /> {location}
-                    <button onClick={() => setLocation("all")} className="ml-1 hover:text-foreground">
+                    <button
+                      onClick={() => setLocation("all")}
+                      className="ml-1 hover:text-foreground"
+                    >
                       <X className="w-3 h-3" />
                     </button>
                   </Badge>
@@ -275,7 +345,11 @@ export default function EventsPage() {
             )}
 
             <p className="text-sm text-muted-foreground mb-6">
-              Showing <span className="font-semibold text-foreground">{filtered.length}</span> events
+              Showing{" "}
+              <span className="font-semibold text-foreground">
+                {filtered.length}
+              </span>{" "}
+              events
             </p>
 
             {filtered.length > 0 ? (
@@ -283,7 +357,9 @@ export default function EventsPage() {
                 className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6"
                 initial="hidden"
                 animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
+                variants={{
+                  visible: { transition: { staggerChildren: 0.07 } },
+                }}
               >
                 <AnimatePresence>
                   {filtered.map((event) => (
@@ -291,9 +367,17 @@ export default function EventsPage() {
                       key={event.id}
                       variants={{
                         hidden: { opacity: 0, y: 20 },
-                        visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          transition: { duration: 0.35, ease: "easeOut" },
+                        },
                       }}
-                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.96,
+                        transition: { duration: 0.2 },
+                      }}
                       layout
                     >
                       <EventCard event={event} />
@@ -306,9 +390,15 @@ export default function EventsPage() {
                 <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
                   <Calendar className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-heading font-semibold text-lg mb-2">No events found</h3>
-                <p className="text-muted-foreground text-sm mb-5">Try adjusting your filters or search term.</p>
-                <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
+                <h3 className="font-heading font-semibold text-lg mb-2">
+                  No events found
+                </h3>
+                <p className="text-muted-foreground text-sm mb-5">
+                  Try adjusting your filters or search term.
+                </p>
+                <Button variant="outline" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
               </div>
             )}
           </div>

@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, SlidersHorizontal, X, MapPin, Building2, Star } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  MapPin,
+  Building2,
+  Star,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +31,8 @@ import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import HotelCard from "@/components/hotels/HotelCard";
-import { mockHotels, mockRoomTypes } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { Hotel } from "@/types";
 import { cn } from "@/lib/utils";
 
 const CITIES = ["Doha", "Lusail", "Abuja"];
@@ -37,23 +45,47 @@ const SORT_OPTIONS = [
   { value: "rating-desc", label: "Rating: Highest" },
 ];
 
-function lowestPrice(hotelId: string) {
-  const rooms = mockRoomTypes[hotelId] ?? [];
+function lowestPrice(hotel: Hotel) {
+  const rooms = hotel.room_types ?? [];
   return rooms.length ? Math.min(...rooms.map((r) => r.price_per_night)) : 0;
 }
 
 export default function HotelsPage() {
+  const [hotels, setHotels] = useState<Hotel[]>([]);
   const [search, setSearch] = useState("");
   const [city, setCity] = useState<string>("all");
   const [rating, setRating] = useState<string>("all");
   const [sort, setSort] = useState("featured");
 
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+
+    async function loadHotels() {
+      const { data } = await supabase
+        .from("hotels")
+        .select("*, room_types(*)")
+        .eq("is_published", true)
+        .order("is_featured", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (!mounted || !data?.length) return;
+      setHotels(data as Hotel[]);
+    }
+
+    loadHotels();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const filtered = useMemo(() => {
-    let hotels = mockHotels.filter((h) => h.is_published);
+    let nextHotels = [...hotels];
 
     if (search.trim()) {
       const q = search.toLowerCase();
-      hotels = hotels.filter(
+      nextHotels = nextHotels.filter(
         (h) =>
           h.name.toLowerCase().includes(q) ||
           h.description.toLowerCase().includes(q) ||
@@ -62,23 +94,25 @@ export default function HotelsPage() {
     }
 
     if (city !== "all") {
-      hotels = hotels.filter((h) => h.city === city);
+      nextHotels = nextHotels.filter((h) => h.city === city);
     }
 
     if (rating !== "all") {
-      hotels = hotels.filter((h) => h.star_rating >= parseInt(rating, 10));
+      nextHotels = nextHotels.filter(
+        (h) => h.star_rating >= parseInt(rating, 10),
+      );
     }
 
-    hotels = [...hotels].sort((a, b) => {
-      if (sort === "price-asc") return lowestPrice(a.id) - lowestPrice(b.id);
-      if (sort === "price-desc") return lowestPrice(b.id) - lowestPrice(a.id);
+    nextHotels = [...nextHotels].sort((a, b) => {
+      if (sort === "price-asc") return lowestPrice(a) - lowestPrice(b);
+      if (sort === "price-desc") return lowestPrice(b) - lowestPrice(a);
       if (sort === "rating-desc") return b.star_rating - a.star_rating;
       // featured
       return Number(b.is_featured) - Number(a.is_featured);
     });
 
-    return hotels;
-  }, [search, city, rating, sort]);
+    return nextHotels;
+  }, [hotels, search, city, rating, sort]);
 
   const hasFilters = city !== "all" || rating !== "all" || search.trim();
 
@@ -215,7 +249,12 @@ export default function HotelsPage() {
           {/* Mobile filter trigger */}
           <Sheet>
             <SheetTrigger
-              render={<Button variant="outline" className="sm:hidden border-border/50 gap-2" />}
+              render={
+                <Button
+                  variant="outline"
+                  className="sm:hidden border-border/50 gap-2"
+                />
+              }
             >
               <SlidersHorizontal className="w-4 h-4" /> Filters
               {hasFilters && (
@@ -318,7 +357,9 @@ export default function HotelsPage() {
                 className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6"
                 initial="hidden"
                 animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
+                variants={{
+                  visible: { transition: { staggerChildren: 0.07 } },
+                }}
               >
                 <AnimatePresence>
                   {filtered.map((hotel) => (
@@ -332,7 +373,11 @@ export default function HotelsPage() {
                           transition: { duration: 0.35, ease: "easeOut" },
                         },
                       }}
-                      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.96,
+                        transition: { duration: 0.2 },
+                      }}
                       layout
                     >
                       <HotelCard hotel={hotel} />

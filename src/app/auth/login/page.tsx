@@ -3,28 +3,13 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Ticket, AlertCircle, Sparkles, Copy, Check } from "lucide-react";
+import { Ticket, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth/context";
 import { toast } from "sonner";
-
-const DEMO_ACCOUNTS = [
-  {
-    label: "Customer",
-    email: "customer@oryxgp.com",
-    password: "Customer@2026",
-    description: "Browse events, book tickets and view your dashboard.",
-  },
-  {
-    label: "Admin",
-    email: "admin@oryxgp.com",
-    password: "Admin@2026",
-    description: "Full access to events, packages, orders & analytics.",
-  },
-];
 
 function LoginForm() {
   const router = useRouter();
@@ -37,7 +22,6 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) router.replace(next);
@@ -47,11 +31,11 @@ function LoginForm() {
     if (queryError) setError(decodeURIComponent(queryError));
   }, [queryError]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const result = signIn(email, password);
+    const result = await signIn(email, password);
     if (!result.ok) {
       setError(result.error);
       setSubmitting(false);
@@ -61,23 +45,7 @@ function LoginForm() {
     const target =
       result.user.role === "admin" && next === "/dashboard" ? "/admin" : next;
     router.replace(target);
-  };
-
-  const useDemo = (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError(null);
-  };
-
-  const copyText = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(value);
-      toast.success("Copied to clipboard");
-      setTimeout(() => setCopied(null), 1500);
-    } catch {
-      toast.error("Could not copy");
-    }
+    setSubmitting(false);
   };
 
   return (
@@ -122,57 +90,6 @@ function LoginForm() {
               Create one free
             </Link>
           </p>
-
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs font-semibold text-primary uppercase tracking-wide">
-                Demo accounts
-              </p>
-            </div>
-            <div className="space-y-2.5">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <div
-                  key={acc.email}
-                  className="flex items-start gap-2 rounded-lg bg-background/60 border border-border/50 p-2.5 text-xs"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground">{acc.label}</p>
-                    <p className="text-muted-foreground truncate">
-                      {acc.email}
-                    </p>
-                    <p className="text-muted-foreground font-mono text-[11px]">
-                      {acc.password}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => useDemo(acc.email, acc.password)}
-                      className="text-[11px] font-medium text-primary hover:underline"
-                    >
-                      Use
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => copyText(`${acc.email} / ${acc.password}`)}
-                      className="text-[11px] font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                    >
-                      {copied === `${acc.email} / ${acc.password}` ? (
-                        <>
-                          <Check className="w-3 h-3" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" /> Copy
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {error && (
             <div className="flex items-center gap-2.5 p-3 mb-5 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">

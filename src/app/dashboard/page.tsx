@@ -18,10 +18,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
 import TicketCard from "@/components/dashboard/TicketCard";
 import RouteGuard from "@/components/auth/RouteGuard";
-import { mockEvents, mockOrders, mockPackages } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/context";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Order } from "@/types";
 
 function DashboardContent() {
   const { user, isAdmin, signOut } = useAuth();
@@ -41,25 +43,42 @@ function DashboardContent() {
       })
     : "";
 
-  const allPackages = Object.values(mockPackages).flat();
-  const orders = mockOrders
-    .filter((order) => order.status === "confirmed")
-    .map((order) => ({
-      ...order,
-      event: mockEvents.find((event) => event.id === order.event_id) ?? null,
-      ticket_package:
-        allPackages.find((pkg) => pkg.id === order.package_id) ?? null,
-    }));
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let mounted = true;
+    const supabase = createClient();
+
+    async function loadOrders() {
+      const { data } = await supabase
+        .from("orders")
+        .select("*, ticket_package:ticket_packages(*), event:events(*)")
+        .eq("user_id", user!.id)
+        .eq("status", "confirmed")
+        .order("created_at", { ascending: false });
+
+      if (!mounted || !data?.length) return;
+      setOrders(data as Order[]);
+    }
+
+    loadOrders();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   const upcoming = orders.filter(
-    (o) => o.event && new Date(o.event.date) > new Date(),
+    (o) => o.event && new Date((o.event as { date: string }).date) > new Date(),
   );
   const past = orders.filter(
-    (o) => o.event && new Date(o.event.date) <= new Date(),
+    (o) =>
+      o.event && new Date((o.event as { date: string }).date) <= new Date(),
   );
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     toast.success("Signed out successfully.");
     router.push("/");
   };

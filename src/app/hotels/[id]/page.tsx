@@ -1,12 +1,24 @@
 "use client";
 
 import { notFound, useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeft, MapPin, Share2, Heart, Star, Wifi, CalendarDays,
-  Users, Minus, Plus, Info, BedDouble, Check, ChevronRight,
+  ArrowLeft,
+  MapPin,
+  Share2,
+  Heart,
+  Star,
+  Wifi,
+  CalendarDays,
+  Users,
+  Minus,
+  Plus,
+  Info,
+  BedDouble,
+  Check,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import RoomCard from "@/components/hotels/RoomCard";
-import { mockHotels, mockRoomTypes } from "@/lib/mock-data";
-import { RoomType } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import { Hotel, RoomType } from "@/types";
 import { cn, nightsBetween, formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -38,12 +50,40 @@ export default function HotelDetailPage({
   const [checkOut, setCheckOut] = useState("");
   const [rooms, setRooms] = useState(1);
   const [guests, setGuests] = useState(2);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
 
-  const hotel = mockHotels.find((h) => h.id === id);
-  if (!hotel) notFound();
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
 
-  const roomTypes = mockRoomTypes[id] ?? [];
-  const gallery = hotel.images?.length ? hotel.images : [hotel.image_url];
+    async function loadHotel() {
+      const { data: liveHotel } = await supabase
+        .from("hotels")
+        .select("*, room_types(*)")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (liveHotel) {
+        setHotel(liveHotel as Hotel);
+        setRoomTypes((liveHotel as Hotel).room_types ?? []);
+      }
+    }
+
+    loadHotel();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  if (!hotel) {
+    notFound();
+  }
+
+  const gallery = hotel?.images?.length ? hotel.images : [hotel.image_url];
   const nights = nightsBetween(checkIn, checkOut);
 
   const handleSelectRoom = (room: RoomType) => {
@@ -109,7 +149,10 @@ export default function HotelDetailPage({
             size="icon"
             className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-sm"
             onClick={() =>
-              navigator.share?.({ title: hotel.name, url: window.location.href })
+              navigator.share?.({
+                title: hotel.name,
+                url: window.location.href,
+              })
             }
           >
             <Share2 className="w-4 h-4" />
@@ -119,7 +162,9 @@ export default function HotelDetailPage({
             size="icon"
             className={cn(
               "border-white/20 backdrop-blur-sm",
-              liked ? "bg-primary/80 text-white" : "bg-black/40 text-white hover:bg-black/60",
+              liked
+                ? "bg-primary/80 text-white"
+                : "bg-black/40 text-white hover:bg-black/60",
             )}
             onClick={() => setLiked(!liked)}
           >
@@ -141,7 +186,12 @@ export default function HotelDetailPage({
                     : "border-white/30 opacity-70 hover:opacity-100",
                 )}
               >
-                <Image src={img} alt={`${hotel.name} ${i + 1}`} fill className="object-cover" />
+                <Image
+                  src={img}
+                  alt={`${hotel.name} ${i + 1}`}
+                  fill
+                  className="object-cover"
+                />
               </button>
             ))}
           </div>
@@ -161,7 +211,10 @@ export default function HotelDetailPage({
                 </Badge>
                 <div className="flex items-center gap-0.5 rounded-full bg-yellow-500/10 px-2 py-1">
                   {Array.from({ length: hotel.star_rating }).map((_, i) => (
-                    <Star key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                    <Star
+                      key={i}
+                      className="w-3 h-3 text-yellow-500 fill-yellow-500"
+                    />
                   ))}
                 </div>
                 {hotel.is_featured && (
@@ -174,7 +227,8 @@ export default function HotelDetailPage({
                 {hotel.name}
               </h1>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4 text-accent shrink-0" /> {hotel.address}
+                <MapPin className="w-4 h-4 text-accent shrink-0" />{" "}
+                {hotel.address}
               </p>
             </div>
 
@@ -192,8 +246,9 @@ export default function HotelDetailPage({
                 <div className="flex items-start gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20">
                   <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    Submitting a request does not confirm a reservation. Our team
-                    will check live availability and confirm your booking by email.
+                    Submitting a request does not confirm a reservation. Our
+                    team will check live availability and confirm your booking
+                    by email.
                   </p>
                 </div>
               </TabsContent>
@@ -223,8 +278,15 @@ export default function HotelDetailPage({
                     <p className="font-heading font-semibold text-lg mb-1">
                       {hotel.name}
                     </p>
-                    <p className="text-sm text-muted-foreground">{hotel.address}</p>
-                    <Button variant="outline" size="sm" className="mt-4 gap-2" asChild>
+                    <p className="text-sm text-muted-foreground">
+                      {hotel.address}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 gap-2"
+                      asChild
+                    >
                       <a
                         href={`https://maps.google.com/?q=${encodeURIComponent(`${hotel.name} ${hotel.location}`)}`}
                         target="_blank"
@@ -283,8 +345,12 @@ export default function HotelDetailPage({
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="space-y-2">
-                    <Label htmlFor="check-in" className="flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-primary" /> Check-in
+                    <Label
+                      htmlFor="check-in"
+                      className="flex items-center gap-1.5"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 text-primary" />{" "}
+                      Check-in
                     </Label>
                     <Input
                       id="check-in"
@@ -293,13 +359,18 @@ export default function HotelDetailPage({
                       value={checkIn}
                       onChange={(e) => {
                         setCheckIn(e.target.value);
-                        if (checkOut && e.target.value >= checkOut) setCheckOut("");
+                        if (checkOut && e.target.value >= checkOut)
+                          setCheckOut("");
                       }}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="check-out" className="flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-secondary" /> Check-out
+                    <Label
+                      htmlFor="check-out"
+                      className="flex items-center gap-1.5"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 text-secondary" />{" "}
+                      Check-out
                     </Label>
                     <Input
                       id="check-out"
@@ -314,7 +385,8 @@ export default function HotelDetailPage({
                 {/* Rooms stepper */}
                 <div className="flex items-center justify-between py-3 border-t border-border/50">
                   <div className="flex items-center gap-2 text-sm">
-                    <BedDouble className="w-4 h-4 text-muted-foreground" /> Rooms
+                    <BedDouble className="w-4 h-4 text-muted-foreground" />{" "}
+                    Rooms
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -325,7 +397,9 @@ export default function HotelDetailPage({
                     >
                       <Minus className="w-3 h-3" />
                     </Button>
-                    <span className="font-semibold text-sm w-4 text-center">{rooms}</span>
+                    <span className="font-semibold text-sm w-4 text-center">
+                      {rooms}
+                    </span>
                     <Button
                       variant="outline"
                       size="icon"
@@ -351,7 +425,9 @@ export default function HotelDetailPage({
                     >
                       <Minus className="w-3 h-3" />
                     </Button>
-                    <span className="font-semibold text-sm w-4 text-center">{guests}</span>
+                    <span className="font-semibold text-sm w-4 text-center">
+                      {guests}
+                    </span>
                     <Button
                       variant="outline"
                       size="icon"
@@ -365,7 +441,9 @@ export default function HotelDetailPage({
 
                 {nights > 0 && (
                   <div className="mt-4 p-3 rounded-xl bg-muted/40 text-sm flex items-center justify-between">
-                    <span className="text-muted-foreground">Length of stay</span>
+                    <span className="text-muted-foreground">
+                      Length of stay
+                    </span>
                     <span className="font-semibold text-foreground">
                       {nights} night{nights > 1 ? "s" : ""}
                     </span>
@@ -374,14 +452,16 @@ export default function HotelDetailPage({
 
                 <p className="mt-4 text-xs text-muted-foreground flex items-start gap-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-                  Choose a room below to send your booking request. No payment is
-                  taken now.
+                  Choose a room below to send your booking request. No payment
+                  is taken now.
                 </p>
               </div>
 
               {roomTypes.length > 0 && (
                 <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 text-center">
-                  <p className="text-xs text-muted-foreground mb-0.5">Rooms from</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">
+                    Rooms from
+                  </p>
                   <p className="font-heading font-bold text-lg text-foreground">
                     {formatPrice(
                       Math.min(...roomTypes.map((r) => r.price_per_night)),

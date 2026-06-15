@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Search as SearchIcon, X, Calendar, MapPin, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -9,17 +9,41 @@ import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import EventCard from "@/components/events/EventCard";
-import { mockEvents } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/client";
+import { Event } from "@/types";
 
 const SUGGESTED = ["Music", "Doha", "Tech", "Food", "Fashion", "Lusail"];
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+
+    async function loadEvents() {
+      const { data } = await supabase
+        .from("events")
+        .select("*, ticket_packages(*)")
+        .eq("is_published", true)
+        .order("date", { ascending: true });
+
+      if (!mounted || !data) return;
+      setEvents(data as Event[]);
+    }
+
+    loadEvents();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return mockEvents.filter(
+    return events.filter(
       (e) =>
         e.title.toLowerCase().includes(q) ||
         e.description.toLowerCase().includes(q) ||
@@ -27,7 +51,7 @@ export default function SearchPage() {
         e.venue.toLowerCase().includes(q) ||
         e.category.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [events, query]);
 
   return (
     <div className="min-h-screen bg-background">

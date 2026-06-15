@@ -42,7 +42,7 @@ function ProfileContent() {
     .join("")
     .toUpperCase();
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccess(null);
     setError(null);
@@ -51,7 +51,7 @@ function ProfileContent() {
       return;
     }
     setSaving(true);
-    const next = updateProfile({ full_name: fullName.trim() });
+    const next = await updateProfile({ full_name: fullName.trim() });
     setSaving(false);
     if (!next) {
       setError("Could not update profile. Please sign in again.");

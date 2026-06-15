@@ -25,7 +25,7 @@ export default function SignupPage() {
     if (!authLoading && user) router.replace("/dashboard");
   }, [authLoading, user, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -39,7 +39,7 @@ export default function SignupPage() {
     }
 
     setSubmitting(true);
-    const result = signUp(name, email, password);
+    const result = await signUp(name, email, password);
     if (!result.ok) {
       setError(result.error);
       setSubmitting(false);
@@ -47,6 +47,7 @@ export default function SignupPage() {
     }
     toast.success("Account created — welcome to Oryx!");
     router.replace("/dashboard");
+    setSubmitting(false);
   };
 
   return (

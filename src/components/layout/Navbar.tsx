@@ -41,8 +41,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isAdmin, signOut } = useAuth();
 
-  function handleSignOut() {
-    signOut();
+  async function handleSignOut() {
+    await signOut();
     toast.success("Signed out successfully.");
     router.push("/");
   }
@@ -140,7 +140,9 @@ export default function Navbar() {
                   <DropdownMenuItem render={<Link href="/dashboard/profile" />}>
                     <UserIcon className="w-4 h-4" /> Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href="/dashboard/settings" />}>
+                  <DropdownMenuItem
+                    render={<Link href="/dashboard/settings" />}
+                  >
                     <SettingsIcon className="w-4 h-4" /> Settings
                   </DropdownMenuItem>
                   {isAdmin && (
