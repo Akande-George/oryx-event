@@ -7,7 +7,20 @@ import {
   Hotel,
   RoomType,
   HotelBooking,
+  Category,
 } from "@/types";
+
+export async function getCategories(): Promise<Category[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name", { ascending: true });
+  if (error) return [];
+  return (data ?? []) as Category[];
+}
+
+
 
 export async function getEvents(options?: {
   category?: string;

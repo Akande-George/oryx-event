@@ -32,20 +32,9 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import EventCard from "@/components/events/EventCard";
 import { createClient } from "@/lib/supabase/client";
-import { Event, EventCategory } from "@/types";
+import { Event } from "@/types";
 import { cn } from "@/lib/utils";
-
-const CATEGORIES: EventCategory[] = [
-  "Music",
-  "Sports",
-  "Arts",
-  "Food & Drink",
-  "Business",
-  "Technology",
-  "Comedy",
-  "Fashion",
-  "Other",
-];
+import { useCategories } from "@/hooks/useCategories";
 
 const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan", "Abuja"];
 
@@ -62,6 +51,7 @@ export default function EventsPage() {
   const [category, setCategory] = useState<string>("all");
   const [location, setLocation] = useState<string>("all");
   const [sort, setSort] = useState("date-asc");
+  const { categories } = useCategories();
 
   useEffect(() => {
     let mounted = true;
@@ -141,18 +131,18 @@ export default function EventsPage() {
           >
             All
           </button>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => setCategory(cat)}
+              key={cat.id}
+              onClick={() => setCategory(cat.name)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
-                category === cat
+                category === cat.name
                   ? "bg-primary text-white border-primary"
                   : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground",
               )}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>

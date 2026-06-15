@@ -12,7 +12,8 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AnimatedEventGrid from "@/components/events/AnimatedEventGrid";
 import HeroMonochrome from "@/components/ui/hero-monochrome";
-import { getEvents } from "@/lib/supabase/queries";
+import { getEvents, getCategories } from "@/lib/supabase/queries";
+
 
 const stats = [
   { label: "Events Hosted", value: "500+", icon: Calendar },
@@ -21,53 +22,37 @@ const stats = [
   { label: "Cities Covered", value: "12", icon: Zap },
 ];
 
-const categories = [
-  {
-    label: "Music",
-    emoji: "🎵",
-    count: 24,
-    color: "from-primary/20 to-primary/5",
-  },
-  {
-    label: "Technology",
-    emoji: "💻",
-    count: 18,
-    color: "from-secondary/20 to-secondary/5",
-  },
-  {
-    label: "Arts",
-    emoji: "🎨",
-    count: 15,
-    color: "from-accent/30 to-accent/10",
-  },
-  {
-    label: "Food & Drink",
-    emoji: "🍽️",
-    count: 21,
-    color: "from-primary/15 to-primary/5",
-  },
-  {
-    label: "Sports",
-    emoji: "⚽",
-    count: 9,
-    color: "from-secondary/15 to-secondary/5",
-  },
-  {
-    label: "Fashion",
-    emoji: "👗",
-    count: 11,
-    color: "from-accent/20 to-accent/5",
-  },
+const CATEGORY_COLORS = [
+  "from-primary/20 to-primary/5",
+  "from-secondary/20 to-secondary/5",
+  "from-accent/30 to-accent/10",
+  "from-primary/15 to-primary/5",
+  "from-secondary/15 to-secondary/5",
+  "from-accent/20 to-accent/5",
 ];
 
 export default async function HomePage() {
-  let upcomingEvents: Awaited<ReturnType<typeof getEvents>> = [];
+  let allEvents: Awaited<ReturnType<typeof getEvents>> = [];
+  let dbCategories: Awaited<ReturnType<typeof getCategories>> = [];
 
   try {
-    upcomingEvents = (await getEvents()).slice(0, 3);
+    [allEvents, dbCategories] = await Promise.all([
+      getEvents(),
+      getCategories(),
+    ]);
   } catch {
     // Supabase not reachable.
   }
+
+  const upcomingEvents = allEvents.slice(0, 3);
+
+  // Derive real event counts per category
+  const categories = dbCategories.slice(0, 6).map((cat, i) => ({
+    label: cat.name,
+    emoji: cat.emoji,
+    count: allEvents.filter((e) => e.category === cat.name).length,
+    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+  }));
 
   return (
     <div className="min-h-screen bg-background">

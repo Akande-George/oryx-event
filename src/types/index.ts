@@ -1,13 +1,12 @@
-export type EventCategory =
-  | "Music"
-  | "Sports"
-  | "Arts"
-  | "Food & Drink"
-  | "Business"
-  | "Technology"
-  | "Comedy"
-  | "Fashion"
-  | "Other";
+/** Widened to string so DB-sourced categories are accepted without casts. */
+export type EventCategory = string;
+
+export interface Category {
+  id: string;
+  name: string;
+  emoji: string;
+  created_at: string;
+}
 
 export interface Event {
   id: string;
