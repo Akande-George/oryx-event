@@ -159,7 +159,7 @@ export default function SearchPage() {
 
         {!query && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockEvents
+            {events
               .filter((e) => e.is_featured)
               .slice(0, 3)
               .map((event) => (
