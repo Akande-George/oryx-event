@@ -77,11 +77,12 @@ export async function createOrder(data: {
   totalPrice: number;
   guestName: string;
   guestEmail: string;
-  paymentReference?: string;
 }) {
   const supabase = await createClient();
   const { data: session } = await supabase.auth.getUser();
 
+  // Insert as pending/unpaid. The webhook flips status to confirmed and
+  // decrements slots only after the payment is verified by MyFatoorah.
   const { data: order, error } = await supabase
     .from("orders")
     .insert({
@@ -90,21 +91,15 @@ export async function createOrder(data: {
       event_id: data.eventId,
       quantity: data.quantity,
       total_price: data.totalPrice,
-      status: "confirmed",
+      status: "pending",
+      payment_status: "unpaid",
       guest_name: data.guestName,
       guest_email: data.guestEmail,
-      payment_reference: data.paymentReference ?? null,
     })
     .select()
     .single();
 
   if (error) return { error: error.message };
-
-  // Decrement available_slots
-  await supabase.rpc("decrement_slots", {
-    p_package_id: data.packageId,
-    p_quantity: data.quantity,
-  });
 
   return { order };
 }
@@ -140,6 +135,7 @@ export async function createHotelBooking(data: {
       estimated_total: data.estimatedTotal,
       special_requests: data.specialRequests ?? null,
       status: "pending",
+      payment_status: "unpaid",
     })
     .select()
     .single();

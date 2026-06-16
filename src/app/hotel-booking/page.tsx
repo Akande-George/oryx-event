@@ -127,14 +127,29 @@ function HotelBookingContent() {
       specialRequests: form.requests,
     });
 
-    if (result.error) {
-      toast.error(result.error);
+    if (result.error || !result.booking) {
+      toast.error(result.error ?? "Could not start checkout.");
       setLoading(false);
       return;
     }
 
-    setLoading(false);
-    setSubmitted(true);
+    const initiate = await fetch("/api/payments/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "booking", id: result.booking.id }),
+    });
+
+    if (!initiate.ok) {
+      const { error } = await initiate.json().catch(() => ({
+        error: "Payment provider failed to start the session.",
+      }));
+      toast.error(error ?? "Payment provider failed to start the session.");
+      setLoading(false);
+      return;
+    }
+
+    const { paymentUrl } = (await initiate.json()) as { paymentUrl: string };
+    window.location.href = paymentUrl;
   };
 
   if (!loadingSession && (!hotel || !room || nights <= 0)) {
@@ -271,8 +286,8 @@ function HotelBookingContent() {
             Request your stay
           </h1>
           <p className="text-muted-foreground mt-1">
-            Share your details and our team will arrange the booking for you. No
-            payment is taken now.
+            Confirm your stay details, then pay securely to lock in your
+            reservation.
           </p>
         </div>
 
@@ -444,15 +459,15 @@ function HotelBookingContent() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Estimate only. Final pricing is confirmed by our team before
-                  any charge.
+                  Charged in full at checkout. We&apos;ll confirm your room
+                  immediately after payment.
                 </p>
                 <Badge
                   variant="secondary"
                   className={cn("w-full justify-center gap-1.5 py-2")}
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-secondary" />
-                  No payment taken now
+                  Secure payment via MyFatoorah
                 </Badge>
               </CardContent>
             </Card>

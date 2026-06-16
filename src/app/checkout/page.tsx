@@ -118,14 +118,29 @@ function CheckoutContent() {
       guestEmail: form.email,
     });
 
-    if (result.error) {
-      toast.error(result.error);
+    if (result.error || !result.order) {
+      toast.error(result.error ?? "Could not start checkout.");
       setLoading(false);
       return;
     }
 
-    setLoading(false);
-    setStep("success");
+    const initiate = await fetch("/api/payments/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "order", id: result.order.id }),
+    });
+
+    if (!initiate.ok) {
+      const { error } = await initiate.json().catch(() => ({
+        error: "Payment provider failed to start the session.",
+      }));
+      toast.error(error ?? "Payment provider failed to start the session.");
+      setLoading(false);
+      return;
+    }
+
+    const { paymentUrl } = (await initiate.json()) as { paymentUrl: string };
+    window.location.href = paymentUrl;
   };
 
   if (!loadingSession && (!event || !pkg)) {
