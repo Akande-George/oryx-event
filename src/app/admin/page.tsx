@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
 
       <div className="p-4 sm:p-6 space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map(({ label, value, icon: Icon, trend, color, bg }) => (
+          {stats.map(({ label, value, icon: Icon, color, bg }) => (
             <Card
               key={label}
               className="border-border hover:shadow-md transition-shadow"
@@ -38,7 +38,6 @@ export default function AdminDashboardPage() {
                   {value}
                 </p>
                 <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="text-xs text-secondary mt-1.5">{trend}</p>
               </CardContent>
             </Card>
           ))}

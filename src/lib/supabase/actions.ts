@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "./server";
+import { createServiceClient } from "./service";
 
 export async function signIn(formData: FormData) {
   // Use demo credentials for UI development
@@ -78,11 +79,13 @@ export async function createOrder(data: {
   guestName: string;
   guestEmail: string;
 }) {
-  const supabase = await createClient();
-  const { data: session } = await supabase.auth.getUser();
+  // user_id is read from the user's session (anon-bound client), but the
+  // INSERT runs with the service role so it bypasses RLS. The webhook flips
+  // status to confirmed and decrements slots only after MyFatoorah verifies.
+  const userClient = await createClient();
+  const { data: session } = await userClient.auth.getUser();
 
-  // Insert as pending/unpaid. The webhook flips status to confirmed and
-  // decrements slots only after the payment is verified by MyFatoorah.
+  const supabase = createServiceClient();
   const { data: order, error } = await supabase
     .from("orders")
     .insert({
@@ -118,7 +121,7 @@ export async function createHotelBooking(data: {
   estimatedTotal: number;
   specialRequests?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { data: booking, error } = await supabase
     .from("hotel_bookings")
     .insert({

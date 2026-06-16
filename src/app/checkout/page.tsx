@@ -43,9 +43,6 @@ function CheckoutContent() {
   const [step, setStep] = useState<Step>("details");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
-  const [paymentMethod, setPaymentMethod] = useState<"paystack" | "card">(
-    "paystack",
-  );
 
   useEffect(() => {
     let mounted = true;
@@ -403,72 +400,16 @@ function CheckoutContent() {
                       </p>
                     </CardHeader>
                     <CardContent className="px-6 pb-6 space-y-5">
-                      {/* Payment options */}
-                      <div className="grid grid-cols-2 gap-3">
-                        {(["paystack", "card"] as const).map((method) => (
-                          <button
-                            key={method}
-                            onClick={() => setPaymentMethod(method)}
-                            className={cn(
-                              "p-4 rounded-xl border text-left transition-all",
-                              paymentMethod === method
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border/50 text-muted-foreground hover:border-border",
-                            )}
-                          >
-                            <div className="font-semibold text-sm mb-1 capitalize">
-                              {method === "paystack" ? "Paystack" : "Card"}
-                            </div>
-                            <div className="text-xs opacity-70">
-                              {method === "paystack"
-                                ? "Pay with Paystack"
-                                : "Debit / Credit"}
-                            </div>
-                          </button>
-                        ))}
+                      <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/20 text-sm text-muted-foreground">
+                        You&apos;ll be redirected to MyFatoorah&apos;s secure
+                        checkout to pay with KNET, Visa, Mastercard, Apple Pay
+                        or Google Pay.
                       </div>
-
-                      {paymentMethod === "card" && (
-                        <div className="space-y-4 p-4 rounded-xl bg-muted/30 border border-border/50">
-                          <div className="space-y-2">
-                            <Label htmlFor="card-number">Card Number</Label>
-                            <Input
-                              id="card-number"
-                              placeholder="0000 0000 0000 0000"
-                              maxLength={19}
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                              <Label htmlFor="card-expiry">Expiry</Label>
-                              <Input
-                                id="card-expiry"
-                                placeholder="MM / YY"
-                                maxLength={7}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="card-cvv">CVV</Label>
-                              <Input
-                                id="card-cvv"
-                                placeholder="•••"
-                                maxLength={4}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {paymentMethod === "paystack" && (
-                        <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/20 text-sm text-muted-foreground">
-                          You&apos;ll be redirected to Paystack&apos;s secure
-                          checkout to complete your payment.
-                        </div>
-                      )}
 
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Lock className="w-3.5 h-3.5 text-secondary" />
-                        256-bit SSL encryption — your payment info is safe.
+                        256-bit SSL encryption — your payment info never touches
+                        our servers.
                       </div>
 
                       <Button

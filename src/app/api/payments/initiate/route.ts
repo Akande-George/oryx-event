@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { sendPayment } from "@/lib/payments/myfatoorah";
 
 type Body =
@@ -30,7 +30,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createClient();
+  // Trusted server route: read/write with the service role so it can see the
+  // just-created pending row regardless of the (anonymous) checkout session.
+  const supabase = createServiceClient();
   const base = siteUrl();
   const callbackUrl = `${base}/api/payments/callback`;
   const errorUrl = `${base}/api/payments/callback`;

@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
 import { Hotel } from "@/types";
@@ -146,13 +147,15 @@ export default function AdminHotelsPage() {
   };
 
   const handleAddRoom = async () => {
-    if (
-      !newRoom.hotel_id ||
-      !newRoom.name ||
-      !newRoom.price_per_night ||
-      !newRoom.capacity
-    )
+    const missing: string[] = [];
+    if (!newRoom.hotel_id) missing.push("Hotel");
+    if (!newRoom.name) missing.push("Room Name");
+    if (!newRoom.price_per_night) missing.push("Price / night");
+    if (!newRoom.capacity) missing.push("Max Guests");
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.join(", ")}.`);
       return;
+    }
     const created = await createRoom({
       hotel_id: newRoom.hotel_id,
       name: newRoom.name,

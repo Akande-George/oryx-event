@@ -52,6 +52,7 @@ export default function HotelDetailPage({
   const [guests, setGuests] = useState(2);
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -70,6 +71,7 @@ export default function HotelDetailPage({
         setHotel(liveHotel as Hotel);
         setRoomTypes((liveHotel as Hotel).room_types ?? []);
       }
+      setLoading(false);
     }
 
     loadHotel();
@@ -78,6 +80,17 @@ export default function HotelDetailPage({
       mounted = false;
     };
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+          <div className="animate-pulse rounded-3xl border border-border/50 bg-card h-96" />
+        </div>
+      </div>
+    );
+  }
 
   if (!hotel) {
     notFound();

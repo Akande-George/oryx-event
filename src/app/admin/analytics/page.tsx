@@ -13,6 +13,25 @@ export default function AdminAnalyticsPage() {
   const { stats, totalRevenue } = useStats();
   const confirmedOrders = orders.filter((o) => o.status === "confirmed");
 
+  // Revenue grouped by event category, derived from confirmed orders.
+  const revenueByCategory = (() => {
+    const totals = new Map<string, number>();
+    for (const order of confirmedOrders) {
+      const event = events.find((e) => e.id === order.event_id);
+      if (!event) continue;
+      const category = event.category || "Uncategorised";
+      totals.set(category, (totals.get(category) ?? 0) + order.total_price);
+    }
+    const sum = Array.from(totals.values()).reduce((s, v) => s + v, 0);
+    return Array.from(totals.entries())
+      .map(([label, value]) => ({
+        label,
+        value,
+        pct: sum > 0 ? (value / sum) * 100 : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  })();
+
   return (
     <>
       <PageHeader title="Analytics" subtitle="Sales and revenue breakdowns" />
@@ -76,22 +95,23 @@ export default function AdminAnalyticsPage() {
               </h3>
             </CardHeader>
             <CardContent className="px-5 pb-5 space-y-3">
-              {[
-                { label: "Music", value: 2100000, pct: 50 },
-                { label: "Technology", value: 1050000, pct: 25 },
-                { label: "Food & Drink", value: 630000, pct: 15 },
-                { label: "Arts", value: 420000, pct: 10 },
-              ].map(({ label, value, pct }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <div className="w-24 text-xs text-muted-foreground shrink-0">
-                    {label}
+              {revenueByCategory.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  No confirmed orders yet.
+                </p>
+              ) : (
+                revenueByCategory.map(({ label, value, pct }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <div className="w-24 text-xs text-muted-foreground shrink-0 truncate">
+                      {label}
+                    </div>
+                    <Progress value={pct} className="flex-1 h-1.5" />
+                    <div className="text-xs font-medium text-foreground shrink-0 w-20 text-right">
+                      {formatPrice(value)}
+                    </div>
                   </div>
-                  <Progress value={pct} className="flex-1 h-1.5" />
-                  <div className="text-xs font-medium text-foreground shrink-0 w-20 text-right">
-                    {formatPrice(value)}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 
