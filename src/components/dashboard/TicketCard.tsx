@@ -26,33 +26,6 @@ interface TicketCardProps {
 export default function TicketCard({ order }: TicketCardProps) {
   const [showQR, setShowQR] = useState(false);
 
-  const handleDownload = () => {
-    const content = [
-      "═══════════════════════════════",
-      "         ORYX EVENT TICKET      ",
-      "═══════════════════════════════",
-      `Event:    ${order.event?.title ?? "—"}`,
-      `Date:     ${order.event?.date ? formatDate(order.event.date) : "—"}`,
-      `Venue:    ${order.event?.venue ?? "—"}`,
-      `Package:  ${order.ticket_package?.name ?? "—"}`,
-      `Qty:      × ${order.quantity}`,
-      `Total:    ${formatPrice(order.total_price)}`,
-      `Ref:      ${order.payment_reference ?? order.id}`,
-      "═══════════════════════════════",
-      "   Please present this ticket   ",
-      "     at the event entrance.     ",
-      "═══════════════════════════════",
-    ].join("\n");
-
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ticket-${order.id}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <>
       <Card className="border-border/50 hover:border-primary/30 transition-all">
@@ -109,9 +82,11 @@ export default function TicketCard({ order }: TicketCardProps) {
                     variant="outline"
                     size="sm"
                     className="gap-1.5 border-border/50 text-xs h-8"
-                    onClick={handleDownload}
+                    asChild
                   >
-                    <Download className="w-3.5 h-3.5" /> Download
+                    <a href={`/api/tickets/order/${order.id}`} download>
+                      <Download className="w-3.5 h-3.5" /> Download
+                    </a>
                   </Button>
                 </div>
               </div>

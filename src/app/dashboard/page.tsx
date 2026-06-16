@@ -9,9 +9,13 @@ import {
   ChevronRight,
   LogOut,
   Shield,
+  BedDouble,
+  Download,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +27,8 @@ import { useAuth } from "@/lib/auth/context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Order } from "@/types";
+import { formatDate, formatPrice } from "@/lib/utils";
+import { HotelBooking, Order } from "@/types";
 
 function DashboardContent() {
   const { user, isAdmin, signOut } = useAuth();
@@ -44,25 +49,35 @@ function DashboardContent() {
     : "";
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stays, setStays] = useState<HotelBooking[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
     let mounted = true;
     const supabase = createClient();
 
-    async function loadOrders() {
-      const { data } = await supabase
-        .from("orders")
-        .select("*, ticket_package:ticket_packages(*), event:events(*)")
-        .eq("user_id", user!.id)
-        .eq("status", "confirmed")
-        .order("created_at", { ascending: false });
+    async function loadData() {
+      const [ordersRes, staysRes] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("*, ticket_package:ticket_packages(*), event:events(*)")
+          .eq("user_id", user!.id)
+          .eq("status", "confirmed")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("hotel_bookings")
+          .select("*, hotel:hotels(*), room_type:room_types(*)")
+          .eq("user_id", user!.id)
+          .eq("payment_status", "paid")
+          .order("created_at", { ascending: false }),
+      ]);
 
-      if (!mounted || !data?.length) return;
-      setOrders(data as Order[]);
+      if (!mounted) return;
+      if (ordersRes.data?.length) setOrders(ordersRes.data as Order[]);
+      if (staysRes.data?.length) setStays(staysRes.data as HotelBooking[]);
     }
 
-    loadOrders();
+    loadData();
 
     return () => {
       mounted = false;
@@ -197,6 +212,7 @@ function DashboardContent() {
                   Upcoming ({upcoming.length})
                 </TabsTrigger>
                 <TabsTrigger value="past">Past ({past.length})</TabsTrigger>
+                <TabsTrigger value="stays">Stays ({stays.length})</TabsTrigger>
               </TabsList>
 
               {(["upcoming", "past"] as const).map((tab) => {
@@ -232,6 +248,96 @@ function DashboardContent() {
                   </TabsContent>
                 );
               })}
+
+              <TabsContent value="stays" className="space-y-4">
+                {stays.length === 0 ? (
+                  <div className="text-center py-16 bg-muted/20 rounded-2xl border border-border/50">
+                    <BedDouble className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+                    <h3 className="font-heading font-semibold mb-2">
+                      No hotel stays
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Your paid hotel bookings will appear here.
+                    </p>
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gradient-primary border-0 text-white"
+                    >
+                      <Link href="/hotels">Browse Hotels</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  stays.map((booking) => {
+                    const hotel = booking.hotel as
+                      | { name?: string; city?: string }
+                      | undefined;
+                    const room = booking.room_type as
+                      | { name?: string }
+                      | undefined;
+                    return (
+                      <Card
+                        key={booking.id}
+                        className="border-border/50 hover:border-primary/30 transition-all"
+                      >
+                        <CardContent className="p-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-heading font-semibold text-foreground truncate">
+                                  {hotel?.name ?? "Hotel"}
+                                </h3>
+                                <Badge className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                  Paid
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                                <MapPin className="w-3 h-3" />
+                                {hotel?.city ?? ""} · {room?.name ?? "Room"}
+                              </p>
+                              <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3 text-primary" />
+                                  {formatDate(booking.check_in)} →{" "}
+                                  {formatDate(booking.check_out)}
+                                </span>
+                                <span>
+                                  {booking.nights} night
+                                  {booking.nights > 1 ? "s" : ""}
+                                </span>
+                                <span className="font-semibold text-foreground">
+                                  {formatPrice(booking.estimated_total)}
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 border-border/50 text-xs h-8 shrink-0"
+                              asChild
+                            >
+                              <a
+                                href={`/api/tickets/booking/${booking.id}`}
+                                download
+                              >
+                                <Download className="w-3.5 h-3.5" /> Download Pass
+                              </a>
+                            </Button>
+                          </div>
+                          {booking.payment_reference && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Ref:{" "}
+                              <span className="font-mono text-foreground">
+                                {booking.payment_reference}
+                              </span>
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </TabsContent>
             </Tabs>
           </div>
         </div>

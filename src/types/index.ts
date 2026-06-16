@@ -50,6 +50,9 @@ export interface Order {
   guest_name?: string;
   guest_email?: string;
   payment_reference?: string;
+  payment_status?: "unpaid" | "paid" | "failed" | "expired" | "refunded";
+  payment_method?: string;
+  payment_invoice_id?: string;
   created_at: string;
   ticket_package?: TicketPackage;
   event?: Event;
@@ -105,6 +108,10 @@ export interface HotelBooking {
   special_requests?: string;
   estimated_total: number;
   status: "pending" | "confirmed" | "cancelled";
+  payment_status?: "unpaid" | "paid" | "failed" | "expired" | "refunded";
+  payment_method?: string;
+  payment_reference?: string;
+  payment_invoice_id?: string;
   created_at: string;
   hotel?: Hotel;
   room_type?: RoomType;

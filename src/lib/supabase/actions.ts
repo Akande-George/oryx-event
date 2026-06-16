@@ -121,10 +121,14 @@ export async function createHotelBooking(data: {
   estimatedTotal: number;
   specialRequests?: string;
 }) {
+  const userClient = await createClient();
+  const { data: session } = await userClient.auth.getUser();
+
   const supabase = createServiceClient();
   const { data: booking, error } = await supabase
     .from("hotel_bookings")
     .insert({
+      user_id: session.user?.id ?? null,
       hotel_id: data.hotelId,
       room_type_id: data.roomTypeId,
       guest_name: data.guestName,

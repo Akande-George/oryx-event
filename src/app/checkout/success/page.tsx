@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Clock, Ticket } from "lucide-react";
+import { Check, Clock, Download, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -10,9 +10,14 @@ export default async function CheckoutSuccessPage({
 }: {
   searchParams: Promise<{ kind?: string; id?: string; pending?: string }>;
 }) {
-  const { kind, pending } = await searchParams;
+  const { kind, id, pending } = await searchParams;
   const isPending = pending === "1";
   const isBooking = kind === "booking";
+  const downloadHref = id
+    ? isBooking
+      ? `/api/tickets/booking/${id}`
+      : `/api/tickets/order/${id}`
+    : null;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -51,17 +56,33 @@ export default async function CheckoutSuccessPage({
               {isBooking ? "Booking reference" : "Order reference"}
             </p>
             <p className="font-mono text-xs break-all text-foreground">
-              {(await searchParams).id ?? "—"}
+              {id ?? "—"}
             </p>
           </CardContent>
         </Card>
 
         <div className="flex flex-col gap-3">
+          {!isPending && downloadHref && (
+            <Button
+              className="gradient-primary border-0 text-white w-full gap-2"
+              asChild
+            >
+              <a href={downloadHref} download>
+                <Download className="w-4 h-4" />{" "}
+                {isBooking ? "Download Hotel Pass" : "Download Ticket"}
+              </a>
+            </Button>
+          )}
           <Button
-            className="gradient-primary border-0 text-white w-full gap-2"
+            variant={isPending ? "default" : "outline"}
+            className={
+              isPending
+                ? "gradient-primary border-0 text-white w-full gap-2"
+                : "w-full gap-2"
+            }
             asChild
           >
-            <Link href={isBooking ? "/dashboard" : "/dashboard"}>
+            <Link href="/dashboard">
               <Ticket className="w-4 h-4" />{" "}
               {isBooking ? "View My Bookings" : "View My Tickets"}
             </Link>
