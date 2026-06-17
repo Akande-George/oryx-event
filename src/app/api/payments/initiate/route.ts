@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendPayment } from "@/lib/payments/myfatoorah";
 
+export const runtime = "nodejs";
+
 type Body =
   | { kind: "order"; id: string }
   | { kind: "booking"; id: string };
@@ -15,7 +17,34 @@ function siteUrl() {
   return url.replace(/\/$/, "");
 }
 
+// Fail fast with a clear message if the prod environment is missing config.
+function assertEnv() {
+  const missing = [
+    "NEXT_PUBLIC_SITE_URL",
+    "MYFATOORAH_API_KEY",
+    "MYFATOORAH_BASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+  ].filter((k) => !process.env[k]);
+  if (missing.length) {
+    throw new Error(`Missing environment variables: ${missing.join(", ")}.`);
+  }
+}
+
 export async function POST(request: Request) {
+  try {
+    return await handle(request);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("payments/initiate failed:", message);
+    return NextResponse.json(
+      { error: `Payment could not be started: ${message}` },
+      { status: 500 },
+    );
+  }
+}
+
+async function handle(request: Request) {
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -29,6 +58,8 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  assertEnv();
 
   // Trusted server route: read/write with the service role so it can see the
   // just-created pending row regardless of the (anonymous) checkout session.
