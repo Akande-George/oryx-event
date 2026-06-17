@@ -106,7 +106,7 @@ export default function HotelsPage() {
 
     if (rating !== "all") {
       nextHotels = nextHotels.filter(
-        (h) => h.star_rating >= parseInt(rating, 10),
+        (h) => h.star_rating === parseInt(rating, 10),
       );
     }
 
@@ -190,7 +190,7 @@ export default function HotelsPage() {
               )}
             >
               {r}
-              <Star className="w-3 h-3 fill-current" /> & up
+              <Star className="w-3 h-3 fill-current" /> star
             </button>
           ))}
         </div>
@@ -339,7 +339,7 @@ export default function HotelsPage() {
                 {rating !== "all" && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     {rating}
-                    <Star className="w-3 h-3 fill-current" /> &amp; up
+                    <Star className="w-3 h-3 fill-current" /> star
                     <button
                       onClick={() => setRating("all")}
                       className="ml-1 hover:text-foreground"

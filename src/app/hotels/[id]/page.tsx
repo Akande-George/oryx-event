@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import RoomCard from "@/components/hotels/RoomCard";
+import GalleryCollage from "@/components/ui/GalleryCollage";
 import { createClient } from "@/lib/supabase/client";
 import { Hotel, RoomType } from "@/types";
 import { cn, nightsBetween, formatPrice } from "@/lib/utils";
@@ -44,7 +45,6 @@ export default function HotelDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const [liked, setLiked] = useState(false);
-  const [activeImage, setActiveImage] = useState(0);
 
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -96,7 +96,10 @@ export default function HotelDetailPage({
     notFound();
   }
 
-  const gallery = hotel?.images?.length ? hotel.images : [hotel.image_url];
+  // Main image first, then the gallery extras, de-duplicated.
+  const gallery = Array.from(
+    new Set([hotel.image_url, ...(hotel.images ?? [])].filter(Boolean)),
+  );
   const nights = nightsBetween(checkIn, checkOut);
 
   const handleSelectRoom = (room: RoomType) => {
@@ -132,7 +135,7 @@ export default function HotelDetailPage({
       {/* Hero gallery */}
       <div className="relative h-[50vh] min-h-[360px] max-h-[520px] overflow-hidden">
         <Image
-          src={gallery[activeImage]}
+          src={gallery[0]}
           alt={hotel.name}
           fill
           className="object-cover"
@@ -185,30 +188,6 @@ export default function HotelDetailPage({
           </Button>
         </div>
 
-        {/* Thumbnails */}
-        {gallery.length > 1 && (
-          <div className="absolute bottom-4 left-4 sm:left-8 flex gap-2">
-            {gallery.map((img, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveImage(i)}
-                className={cn(
-                  "relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-all",
-                  i === activeImage
-                    ? "border-white scale-105"
-                    : "border-white/30 opacity-70 hover:opacity-100",
-                )}
-              >
-                <Image
-                  src={img}
-                  alt={`${hotel.name} ${i + 1}`}
-                  fill
-                  className="object-cover"
-                />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Content */}
@@ -244,6 +223,15 @@ export default function HotelDetailPage({
                 {hotel.address}
               </p>
             </div>
+
+            {gallery.length > 1 && (
+              <div className="mb-8">
+                <h2 className="font-heading font-bold text-lg text-foreground mb-3">
+                  Photos
+                </h2>
+                <GalleryCollage images={gallery} alt={hotel.name} />
+              </div>
+            )}
 
             <Tabs defaultValue="about">
               <TabsList className="mb-6 bg-muted/30 border border-border/50">

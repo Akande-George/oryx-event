@@ -146,7 +146,7 @@ export default function Footer() {
               href="https://www.oryxgp.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-4"
+              className="inline-flex items-center gap-2 text-sm text-secondary hover:underline mb-4"
             >
               <Globe className="w-3.5 h-3.5" />
               www.oryxgp.com
@@ -158,12 +158,12 @@ export default function Footer() {
                   Global HQ — Doha
                 </p>
                 <p className="flex items-start gap-2 leading-relaxed">
-                  <MapPin className="w-3.5 h-3.5 shrink-0 text-primary mt-0.5" />
+                  <MapPin className="w-3.5 h-3.5 shrink-0 text-secondary mt-0.5" />
                   Office 705, 7th Floor, Building 8, Emrair Street, Zone 18, Old
                   Salata - Corniche, Doha, Qatar.
                 </p>
                 <p className="flex items-center gap-2 mt-1.5">
-                  <Mail className="w-3.5 h-3.5 shrink-0 text-primary" />
+                  <Mail className="w-3.5 h-3.5 shrink-0 text-secondary" />
                   <a
                     href="mailto:info@oryxgp.com"
                     className="hover:text-foreground"
@@ -172,7 +172,7 @@ export default function Footer() {
                   </a>
                 </p>
                 <p className="flex items-center gap-2 mt-1.5">
-                  <Phone className="w-3.5 h-3.5 shrink-0 text-primary" />
+                  <Phone className="w-3.5 h-3.5 shrink-0 text-secondary" />
                   <a
                     href="tel:+97444931726"
                     className="hover:text-foreground"

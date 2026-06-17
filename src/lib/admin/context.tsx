@@ -29,6 +29,7 @@ export type NewEventInput = {
   date: string;
   category: EventCategory;
   image_url: string;
+  images: string[];
 };
 
 export type EventPatch = Partial<NewEventInput>;

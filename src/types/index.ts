@@ -18,6 +18,7 @@ export interface Event {
   end_date?: string;
   category: EventCategory;
   image_url: string;
+  images?: string[];
   organizer: string;
   is_featured: boolean;
   is_published: boolean;

@@ -30,6 +30,7 @@ import { useAdminData } from "@/lib/admin/context";
 import { Event, EventCategory } from "@/types";
 import { toast } from "sonner";
 import ImageUploadInput from "@/components/ui/ImageUploadInput";
+import MultiImageUploadInput from "@/components/ui/MultiImageUploadInput";
 import PageHeader from "../_components/PageHeader";
 
 const blankEvent = {
@@ -40,6 +41,7 @@ const blankEvent = {
   date: "",
   category: "" as EventCategory | "",
   image_url: "",
+  images: [] as string[],
 };
 
 export default function AdminEventsPage() {
@@ -54,6 +56,17 @@ export default function AdminEventsPage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newEvent, setNewEvent] = useState(blankEvent);
+  // Min selectable datetime for the picker; set when the dialog opens so the
+  // clock isn't read during render (which is impure).
+  const [minDate, setMinDate] = useState("");
+
+  const openCreate = (open: boolean) => {
+    if (open) {
+      const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+      setMinDate(d.toISOString().slice(0, 16));
+    }
+    setCreateOpen(open);
+  };
 
   const [editEventId, setEditEventId] = useState<string | null>(null);
   const [editEvent, setEditEvent] = useState(blankEvent);
@@ -94,6 +107,7 @@ export default function AdminEventsPage() {
       date: event.date ? event.date.replace(" ", "T").slice(0, 16) : "",
       category: event.category,
       image_url: event.image_url,
+      images: event.images ?? [],
     });
   };
 
@@ -112,7 +126,7 @@ export default function AdminEventsPage() {
   };
 
   const createAction = (
-    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+    <Dialog open={createOpen} onOpenChange={openCreate}>
       <DialogTrigger
         render={
           <Button className="gradient-primary border-0 text-white shadow-sm gap-2 shrink-0" />
@@ -143,6 +157,7 @@ export default function AdminEventsPage() {
               <Input
                 id="admin-date"
                 type="datetime-local"
+                min={minDate}
                 value={newEvent.date}
                 onChange={(e) =>
                   setNewEvent({ ...newEvent, date: e.target.value })
@@ -205,10 +220,18 @@ export default function AdminEventsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Image</Label>
+            <Label>Main Image</Label>
             <ImageUploadInput
               value={newEvent.image_url}
               onChange={(url) => setNewEvent({ ...newEvent, image_url: url })}
+              folder="oryx-events"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Gallery Images</Label>
+            <MultiImageUploadInput
+              value={newEvent.images}
+              onChange={(images) => setNewEvent({ ...newEvent, images })}
               folder="oryx-events"
             />
           </div>
@@ -485,12 +508,20 @@ export default function AdminEventsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Image</Label>
+              <Label>Main Image</Label>
               <ImageUploadInput
                 value={editEvent.image_url}
                 onChange={(url) =>
                   setEditEvent({ ...editEvent, image_url: url })
                 }
+                folder="oryx-events"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Gallery Images</Label>
+              <MultiImageUploadInput
+                value={editEvent.images}
+                onChange={(images) => setEditEvent({ ...editEvent, images })}
                 folder="oryx-events"
               />
             </div>

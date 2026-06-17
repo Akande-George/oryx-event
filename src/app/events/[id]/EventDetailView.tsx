@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TicketPackageCard from "@/components/events/TicketPackageCard";
+import GalleryCollage from "@/components/ui/GalleryCollage";
 import { Event, TicketPackage } from "@/types";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 
@@ -53,6 +54,11 @@ export default function EventDetailView({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  // Hero image first, then gallery extras, de-duplicated.
+  const gallery = Array.from(
+    new Set([event.image_url, ...(event.images ?? [])].filter(Boolean)),
+  );
 
   const handleSelectPackage = (pkg: TicketPackage, qty: number) => {
     router.push(`/checkout?eventId=${event.id}&packageId=${pkg.id}&qty=${qty}`);
@@ -174,6 +180,15 @@ export default function EventDetailView({
                 ))}
               </div>
             </div>
+
+            {gallery.length > 1 && (
+              <div className="mb-8">
+                <h2 className="font-heading font-bold text-lg text-foreground mb-3">
+                  Photos
+                </h2>
+                <GalleryCollage images={gallery} alt={event.title} />
+              </div>
+            )}
 
             <Tabs defaultValue="about">
               <TabsList className="mb-6 bg-muted/30 border border-border/50">
