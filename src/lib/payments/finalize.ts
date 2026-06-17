@@ -77,19 +77,23 @@ export async function finalizeFromVerifiedStatus(
     }
     await supabase.from(table).update(update).eq("id", id);
 
-    // Decrement slots only on the first paid transition for orders. We guard
-    // by checking the previous payment_status, so retries don't double-spend.
-    if (kind === "order" && row.payment_status !== "paid") {
+    // Decrement inventory exactly once per order, guarded by slots_decremented
+    // so webhook retries AND a manual admin confirm can't double-count.
+    if (kind === "order") {
       const { data: orderRow } = await supabase
         .from("orders")
-        .select("package_id,quantity")
+        .select("package_id,quantity,slots_decremented")
         .eq("id", id)
         .single();
-      if (orderRow) {
+      if (orderRow && !orderRow.slots_decremented) {
         await supabase.rpc("decrement_slots", {
           p_package_id: orderRow.package_id,
           p_quantity: orderRow.quantity,
         });
+        await supabase
+          .from("orders")
+          .update({ slots_decremented: true })
+          .eq("id", id);
       }
     }
     return { kind, id, outcome: "paid" };

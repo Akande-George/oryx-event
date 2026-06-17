@@ -39,6 +39,7 @@ import { formatPrice } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
 import { Hotel } from "@/types";
 import ImageUploadInput from "@/components/ui/ImageUploadInput";
+import MultiImageUploadInput from "@/components/ui/MultiImageUploadInput";
 import PageHeader from "../_components/PageHeader";
 
 const STAR_OPTIONS = ["5", "4", "3", "2", "1"];
@@ -52,6 +53,7 @@ const blankHotel = {
   description: "",
   image_url: "",
   amenities: "",
+  images: [] as string[],
 };
 
 const blankRoom = {
@@ -105,6 +107,7 @@ export default function AdminHotelsPage() {
       star_rating: parseInt(newHotel.star_rating, 10),
       amenities: parseList(newHotel.amenities),
       image_url: newHotel.image_url,
+      images: newHotel.images,
     });
     if (created) {
       setCreateOpen(false);
@@ -123,6 +126,7 @@ export default function AdminHotelsPage() {
       description: hotel.description,
       image_url: hotel.image_url,
       amenities: hotel.amenities.join(", "),
+      images: hotel.images ?? [],
     });
   };
 
@@ -137,6 +141,7 @@ export default function AdminHotelsPage() {
       description: editHotel.description,
       image_url: editHotel.image_url,
       amenities: parseList(editHotel.amenities),
+      images: editHotel.images,
     });
     if (updated) setEditId(null);
   };
@@ -393,10 +398,18 @@ export default function AdminHotelsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Image</Label>
+              <Label>Main Image</Label>
               <ImageUploadInput
                 value={newHotel.image_url}
                 onChange={(url) => setNewHotel({ ...newHotel, image_url: url })}
+                folder="oryx-hotels"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Gallery Images</Label>
+              <MultiImageUploadInput
+                value={newHotel.images}
+                onChange={(images) => setNewHotel({ ...newHotel, images })}
                 folder="oryx-hotels"
               />
             </div>
@@ -796,12 +809,20 @@ export default function AdminHotelsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Image</Label>
+              <Label>Main Image</Label>
               <ImageUploadInput
                 value={editHotel.image_url}
                 onChange={(url) =>
                   setEditHotel({ ...editHotel, image_url: url })
                 }
+                folder="oryx-hotels"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Gallery Images</Label>
+              <MultiImageUploadInput
+                value={editHotel.images}
+                onChange={(images) => setEditHotel({ ...editHotel, images })}
                 folder="oryx-hotels"
               />
             </div>

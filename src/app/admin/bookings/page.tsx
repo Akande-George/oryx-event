@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
-  Mail,
   Phone,
   X,
   XCircle,
@@ -24,6 +23,8 @@ import { formatDate, formatDateShort, formatPrice } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
 import { HotelBooking } from "@/types";
 import PageHeader from "../_components/PageHeader";
+import EmailGuestButtons from "../_components/EmailGuestButtons";
+import PaymentBadge from "../_components/PaymentBadge";
 
 export default function AdminBookingsPage() {
   const { hotels, hotelRooms, bookings, updateBookingStatus } = useAdminData();
@@ -78,6 +79,7 @@ export default function AdminBookingsPage() {
                     "Dates",
                     "Nights",
                     "Est. Total",
+                    "Payment",
                     "Status",
                     "Actions",
                   ].map((h) => (
@@ -132,6 +134,9 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="px-5 py-3 font-medium text-sm">
                         {formatPrice(booking.estimated_total)}
+                      </td>
+                      <td className="px-5 py-3">
+                        <PaymentBadge status={booking.payment_status} />
                       </td>
                       <td className="px-5 py-3">
                         <Badge
@@ -213,17 +218,20 @@ export default function AdminBookingsPage() {
                           {selected.guest_email}
                         </p>
                       </div>
-                      <Badge
-                        className={
-                          selected.status === "confirmed"
-                            ? "ml-auto bg-green-50 text-green-700 border-green-200 text-xs"
-                            : selected.status === "cancelled"
-                              ? "ml-auto bg-red-50 text-red-700 border-red-200 text-xs"
-                              : "ml-auto bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
-                        }
-                      >
-                        {selected.status}
-                      </Badge>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <PaymentBadge status={selected.payment_status} />
+                        <Badge
+                          className={
+                            selected.status === "confirmed"
+                              ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                              : selected.status === "cancelled"
+                                ? "bg-red-50 text-red-700 border-red-200 text-xs"
+                                : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                          }
+                        >
+                          {selected.status}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="col-span-2">
@@ -323,19 +331,13 @@ export default function AdminBookingsPage() {
                         </Button>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={() =>
-                        window.open(
-                          `mailto:${selected.guest_email}?subject=Your booking request for ${
-                            hotel?.name ?? "your stay"
-                          }`,
-                        )
-                      }
-                    >
-                      <Mail className="w-4 h-4" /> Email Guest
-                    </Button>
+                    <EmailGuestButtons
+                      email={selected.guest_email}
+                      subject={`Your booking request for ${
+                        hotel?.name ?? "your stay"
+                      }`}
+                      label="guest email"
+                    />
                   </div>
                 );
               })()}

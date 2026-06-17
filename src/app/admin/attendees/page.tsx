@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Download, Eye, Mail } from "lucide-react";
+import { CheckCircle2, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import {
 import { formatDate, formatPrice } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
 import PageHeader from "../_components/PageHeader";
+import EmailGuestButtons from "../_components/EmailGuestButtons";
 
 export default function AdminAttendeesPage() {
   const { events, packages, orders } = useAdminData();
@@ -251,41 +252,13 @@ export default function AdminAttendeesPage() {
                   )}
                 </div>
                 <Separator className="opacity-30" />
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 gap-2"
-                    onClick={() =>
-                      window.open(
-                        `mailto:${selected.guest_email}?subject=Your ticket for ${
-                          selected.event?.title ?? "the event"
-                        }`,
-                      )
-                    }
-                  >
-                    <Mail className="w-4 h-4" /> Email Attendee
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      const row = [
-                        selected.guest_name ?? "",
-                        selected.guest_email ?? "",
-                        selected.event?.title ?? "",
-                        selected.pkg?.name ?? "",
-                        String(selected.quantity),
-                        String(selected.total_price),
-                      ];
-                      const csv = row
-                        .map((c) => `"${c.replace(/"/g, '""')}"`)
-                        .join(",");
-                      navigator.clipboard.writeText(csv);
-                    }}
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </div>
+                <EmailGuestButtons
+                  email={selected.guest_email ?? ""}
+                  subject={`Your ticket for ${
+                    selected.event?.title ?? "the event"
+                  }`}
+                  label="attendee email"
+                />
               </div>
             )}
           </DialogContent>

@@ -28,6 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
 import { Event, EventCategory } from "@/types";
+import { toast } from "sonner";
 import ImageUploadInput from "@/components/ui/ImageUploadInput";
 import PageHeader from "../_components/PageHeader";
 
@@ -60,7 +61,18 @@ export default function AdminEventsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!newEvent.title || !newEvent.category) return;
+    if (!newEvent.title || !newEvent.category) {
+      toast.error("Please fill in the event title and category.");
+      return;
+    }
+    if (!newEvent.date) {
+      toast.error("Please choose a date and time.");
+      return;
+    }
+    if (new Date(newEvent.date).getTime() <= Date.now()) {
+      toast.error("Event date must be in the future.");
+      return;
+    }
     const created = await createEvent({
       ...newEvent,
       category: newEvent.category as EventCategory,
@@ -70,6 +82,7 @@ export default function AdminEventsPage() {
       setNewEvent(blankEvent);
     }
   };
+
 
   const handleEditOpen = (event: Event) => {
     setEditEventId(event.id);

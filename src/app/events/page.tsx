@@ -96,11 +96,22 @@ export default function EventsPage() {
       nextEvents = nextEvents.filter((e) => e.location.includes(location));
     }
 
+    // Lowest ticket price for an event; events without packages sort last on
+    // price-asc and first on price-desc by using +/-Infinity.
+    const minPrice = (e: (typeof nextEvents)[number], fallback: number) => {
+      const prices = (e.ticket_packages ?? []).map((p) => p.price);
+      return prices.length ? Math.min(...prices) : fallback;
+    };
+
     nextEvents.sort((a, b) => {
       if (sort === "date-asc")
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       if (sort === "date-desc")
         return new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (sort === "price-asc")
+        return minPrice(a, Infinity) - minPrice(b, Infinity);
+      if (sort === "price-desc")
+        return minPrice(b, -Infinity) - minPrice(a, -Infinity);
       return 0;
     });
 

@@ -42,6 +42,7 @@ export type NewHotelInput = {
   star_rating: number;
   amenities: string[];
   image_url: string;
+  images: string[];
 };
 
 export type HotelPatch = Partial<NewHotelInput>;
@@ -473,6 +474,27 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         toast.error(error.message);
         return false;
       }
+
+      // A manual confirm reduces inventory too — but only if the payment
+      // webhook hasn't already done it (guarded by slots_decremented).
+      if (status === "confirmed") {
+        const { data: row } = await supabase
+          .from("orders")
+          .select("package_id,quantity,slots_decremented")
+          .eq("id", id)
+          .single();
+        if (row && !row.slots_decremented) {
+          await supabase.rpc("decrement_slots", {
+            p_package_id: row.package_id,
+            p_quantity: row.quantity,
+          });
+          await supabase
+            .from("orders")
+            .update({ slots_decremented: true })
+            .eq("id", id);
+        }
+      }
+
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status } : o)),
       );

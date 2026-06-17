@@ -16,6 +16,7 @@ import { formatDate, formatPrice } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
 import { Order } from "@/types";
 import PageHeader from "../_components/PageHeader";
+import PaymentBadge from "../_components/PaymentBadge";
 
 export default function AdminOrdersPage() {
   const { events, packages, orders, updateOrderStatus } = useAdminData();
@@ -65,6 +66,7 @@ export default function AdminOrdersPage() {
                     "Qty",
                     "Total",
                     "Date",
+                    "Payment",
                     "Status",
                     "Actions",
                   ].map((h) => (
@@ -120,6 +122,9 @@ export default function AdminOrdersPage() {
                           "en-GB",
                           { day: "2-digit", month: "short" },
                         )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <PaymentBadge status={order.payment_status} />
                       </td>
                       <td className="px-5 py-3">
                         <Badge
@@ -200,17 +205,20 @@ export default function AdminOrdersPage() {
                           {selectedOrder.guest_email}
                         </p>
                       </div>
-                      <Badge
-                        className={
-                          selectedOrder.status === "confirmed"
-                            ? "ml-auto bg-green-50 text-green-700 border-green-200 text-xs"
-                            : selectedOrder.status === "cancelled"
-                              ? "ml-auto bg-red-50 text-red-700 border-red-200 text-xs"
-                              : "ml-auto bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
-                        }
-                      >
-                        {selectedOrder.status}
-                      </Badge>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <PaymentBadge status={selectedOrder.payment_status} />
+                        <Badge
+                          className={
+                            selectedOrder.status === "confirmed"
+                              ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                              : selectedOrder.status === "cancelled"
+                                ? "bg-red-50 text-red-700 border-red-200 text-xs"
+                                : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                          }
+                        >
+                          {selectedOrder.status}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
@@ -277,6 +285,14 @@ export default function AdminOrdersPage() {
                           {formatPrice(selectedOrder.total_price)}
                         </p>
                       </div>
+                      {selectedOrder.payment_method && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">
+                            Method
+                          </p>
+                          <p>{selectedOrder.payment_method}</p>
+                        </div>
+                      )}
                       {selectedOrder.payment_reference && (
                         <div className="col-span-2">
                           <p className="text-xs text-muted-foreground mb-0.5">

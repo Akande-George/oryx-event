@@ -38,16 +38,22 @@ export default function ImageUploadInput({ value, onChange, folder = "oryx-event
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to upload image");
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.secure_url) {
+        throw new Error(
+          data.error ||
+            "Upload failed. Check that Cloudinary env vars are set on the server.",
+        );
       }
 
-      const data = await response.json();
       onChange(data.secure_url);
       toast.success("Image uploaded successfully");
     } catch (error) {
       console.error(error);
-      toast.error("An error occurred during upload.");
+      toast.error(
+        error instanceof Error ? error.message : "An error occurred during upload.",
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

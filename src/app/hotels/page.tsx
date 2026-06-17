@@ -35,7 +35,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Hotel } from "@/types";
 import { cn } from "@/lib/utils";
 
-const CITIES = ["Doha", "Lusail", "Abuja"];
 const RATINGS = [5, 4, 3];
 
 const SORT_OPTIONS = [
@@ -79,6 +78,14 @@ export default function HotelsPage() {
       mounted = false;
     };
   }, []);
+
+  // Cities are derived from the live hotel data, so adding a hotel in a new
+  // city automatically adds it as a filter option — no hardcoded list.
+  const CITIES = useMemo(
+    () =>
+      Array.from(new Set(hotels.map((h) => h.city).filter(Boolean))).sort(),
+    [hotels],
+  );
 
   const filtered = useMemo(() => {
     let nextHotels = [...hotels];
