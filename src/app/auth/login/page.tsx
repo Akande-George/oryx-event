@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Ticket, AlertCircle } from "lucide-react";
+import { Ticket, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,6 +69,13 @@ function LoginForm() {
 
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-sm">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to home
+          </Link>
+
           <div className="lg:hidden flex items-center gap-2 mb-10">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Ticket className="w-4 h-4 text-white" />

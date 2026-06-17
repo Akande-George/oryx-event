@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Ticket } from "lucide-react";
+import { AlertCircle, ArrowLeft, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +85,13 @@ export default function SignupPage() {
 
       <div className="flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
         <div className="w-full max-w-sm">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to home
+          </Link>
+
           <div className="lg:hidden flex items-center gap-2 mb-10">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Ticket className="w-4 h-4 text-white" />

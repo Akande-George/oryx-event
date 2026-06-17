@@ -15,7 +15,7 @@ function requireKey() {
   return API_KEY;
 }
 
-type Notification = "Lnk" | "EML" | "SMS" | "ALL";
+type Notification = "LNK" | "EML" | "SMS" | "ALL";
 
 export type SendPaymentInput = {
   amount: number;
@@ -55,16 +55,25 @@ async function call<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  const json = (await res.json()) as MyFatoorahEnvelope<T>;
+  const raw = await res.text();
+  let json: MyFatoorahEnvelope<T>;
+  try {
+    json = JSON.parse(raw) as MyFatoorahEnvelope<T>;
+  } catch {
+    throw new Error(
+      `MyFatoorah ${path} returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 300)}`,
+    );
+  }
   if (!json.IsSuccess || !json.Data) {
     const validation = json.ValidationErrors?.map(
       (v) => `${v.Name}: ${v.Error}`,
     ).join("; ");
-    throw new Error(
-      `MyFatoorah ${path} failed: ${json.Message}${
-        validation ? ` (${validation})` : ""
-      }`,
-    );
+    // When MyFatoorah gives only a generic message, include the raw body so
+    // the real cause (auth, currency, field) is visible in logs.
+    const detail = validation
+      ? ` (${validation})`
+      : ` [HTTP ${res.status}] ${raw.slice(0, 300)}`;
+    throw new Error(`MyFatoorah ${path} failed: ${json.Message}${detail}`);
   }
   return json.Data;
 }
@@ -75,18 +84,25 @@ export async function sendPayment(
   const data = await call<{ InvoiceId: number; InvoiceURL: string }>(
     "/v2/SendPayment",
     {
-      InvoiceAmount: Number(input.amount.toFixed(3)),
-      CurrencyIso: input.currency ?? "QAR",
+      // MyFatoorah SendPayment v2 fields: InvoiceValue + DisplayCurrencyIso
+      // (NOT InvoiceAmount/CurrencyIso), and NotificationOption must be
+      // upper-case ("LNK" | "SMS" | "EML" | "ALL").
+      NotificationOption: input.notification ?? "LNK",
       CustomerName: input.customerName,
+      DisplayCurrencyIso: input.currency ?? "QAR",
       CustomerEmail: input.customerEmail,
-      CustomerMobile: input.customerMobile ?? "",
-      MobileCountryCode: input.mobileCountryCode ?? "+974",
-      NotificationOption: input.notification ?? "Lnk",
-      Language: input.language ?? "en",
+      InvoiceValue: Number(input.amount.toFixed(3)),
       CallBackUrl: input.callbackUrl,
       ErrorUrl: input.errorUrl,
+      Language: input.language ?? "en",
       CustomerReference: input.customerReference,
       UserDefinedField: input.userDefinedField ?? "",
+      ...(input.customerMobile
+        ? {
+            CustomerMobile: input.customerMobile,
+            MobileCountryCode: input.mobileCountryCode ?? "+974",
+          }
+        : {}),
     },
   );
   return {
