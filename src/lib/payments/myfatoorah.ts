@@ -3,9 +3,19 @@
 
 import "server-only";
 
-const BASE_URL =
-  process.env.MYFATOORAH_BASE_URL ?? "https://apitest.myfatoorah.com";
-const API_KEY = process.env.MYFATOORAH_API_KEY;
+// Trim env values — a trailing newline pasted into a host's env var corrupts
+// the Authorization header (and the URL), and MyFatoorah answers HTTP 500.
+const BASE_URL = (
+  process.env.MYFATOORAH_BASE_URL ?? "https://apitest.myfatoorah.com"
+)
+  .trim()
+  .replace(/\/$/, "");
+const API_KEY = process.env.MYFATOORAH_API_KEY?.trim();
+
+// Optional currency override. When unset, the account's default currency is
+// used (omitting DisplayCurrencyIso), which avoids 500s from an unsupported
+// currency. Set MYFATOORAH_CURRENCY=QAR to force a specific one.
+const CURRENCY = process.env.MYFATOORAH_CURRENCY?.trim();
 
 function requireKey() {
   if (!API_KEY)
@@ -81,6 +91,9 @@ async function call<T>(path: string, body: unknown): Promise<T> {
 export async function sendPayment(
   input: SendPaymentInput,
 ): Promise<SendPaymentResult> {
+  // Use explicit currency only when one is configured/passed; otherwise let
+  // MyFatoorah apply the account default (avoids 500s from unsupported codes).
+  const currency = input.currency ?? CURRENCY;
   const data = await call<{ InvoiceId: number; InvoiceURL: string }>(
     "/v2/SendPayment",
     {
@@ -89,7 +102,7 @@ export async function sendPayment(
       // upper-case ("LNK" | "SMS" | "EML" | "ALL").
       NotificationOption: input.notification ?? "LNK",
       CustomerName: input.customerName,
-      DisplayCurrencyIso: input.currency ?? "QAR",
+      ...(currency ? { DisplayCurrencyIso: currency } : {}),
       CustomerEmail: input.customerEmail,
       InvoiceValue: Number(input.amount.toFixed(3)),
       CallBackUrl: input.callbackUrl,
