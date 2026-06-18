@@ -1,5 +1,4 @@
 -- Categories table. Used by the admin Categories section and the event-create
--- dropdown. `name` is the value stored on events.category, so it must be unique.
 
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),
