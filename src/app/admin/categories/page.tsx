@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,14 +12,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAdminData } from "@/lib/admin/context";
 import PageHeader from "../_components/PageHeader";
 
 export default function AdminCategoriesPage() {
-  const { categories, createCategory, deleteCategory } = useAdminData();
+  const { categories, createCategory, updateCategory, deleteCategory } =
+    useAdminData();
   const [newName, setNewName] = useState("");
   const [newEmoji, setNewEmoji] = useState("🎉");
   const [deleteOpenId, setDeleteOpenId] = useState<string | null>(null);
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmoji, setEditEmoji] = useState("");
 
   const handleAdd = async () => {
     const name = newName.trim();
@@ -29,6 +35,21 @@ export default function AdminCategoriesPage() {
       setNewName("");
       setNewEmoji("🎉");
     }
+  };
+
+  const openEdit = (id: string, name: string, emoji: string) => {
+    setEditId(id);
+    setEditName(name);
+    setEditEmoji(emoji);
+  };
+
+  const handleEditSave = async () => {
+    if (!editId || !editName.trim()) return;
+    const cat = await updateCategory(editId, {
+      name: editName.trim(),
+      emoji: editEmoji.trim() || "🎉",
+    });
+    if (cat) setEditId(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -87,22 +108,30 @@ export default function AdminCategoriesPage() {
                   {cat.name}
                 </span>
               </div>
-              <Dialog
-                open={deleteOpenId === cat.id}
-                onOpenChange={(open) =>
-                  setDeleteOpenId(open ? cat.id : null)
-                }
-              >
-                <DialogTrigger
-                  render={
-                    <button
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                      aria-label={`Delete ${cat.name}`}
-                    />
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openEdit(cat.id, cat.name, cat.emoji)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                  aria-label={`Edit ${cat.name}`}
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <Dialog
+                  open={deleteOpenId === cat.id}
+                  onOpenChange={(open) =>
+                    setDeleteOpenId(open ? cat.id : null)
                   }
                 >
-                  <Trash2 className="w-4 h-4" />
-                </DialogTrigger>
+                  <DialogTrigger
+                    render={
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                        aria-label={`Delete ${cat.name}`}
+                      />
+                    }
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </DialogTrigger>
                 <DialogContent className="max-w-sm">
                   <DialogHeader>
                     <DialogTitle className="font-heading">
@@ -132,6 +161,7 @@ export default function AdminCategoriesPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           ))}
         </div>
@@ -142,6 +172,52 @@ export default function AdminCategoriesPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Edit Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-cat-emoji">Emoji</Label>
+              <Input
+                id="edit-cat-emoji"
+                value={editEmoji}
+                onChange={(e) => setEditEmoji(e.target.value)}
+                className="w-20 text-center text-lg"
+                maxLength={4}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-cat-name">Name</Label>
+              <Input
+                id="edit-cat-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleEditSave()}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Renaming a category won&apos;t change events already saved with the
+              old name.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditId(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="gradient-primary border-0 text-white"
+              onClick={handleEditSave}
+              disabled={!editName.trim()}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

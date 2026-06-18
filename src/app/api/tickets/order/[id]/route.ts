@@ -14,7 +14,7 @@ export async function GET(
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      "id, quantity, total_price, payment_status, payment_reference, guest_name, event:events(title, date, venue, location), ticket_package:ticket_packages(name, tier)",
+      "id, status, quantity, total_price, payment_status, payment_reference, guest_name, event:events(title, date, venue, location), ticket_package:ticket_packages(name, tier)",
     )
     .eq("id", id)
     .single();
@@ -22,10 +22,13 @@ export async function GET(
   if (error || !order) {
     return new Response("Ticket not found.", { status: 404 });
   }
-  if (order.payment_status !== "paid") {
-    return new Response("This ticket is not available until payment is confirmed.", {
-      status: 403,
-    });
+  // A ticket is valid once the order is confirmed — either by a completed
+  // payment (webhook) or by an admin confirming it manually.
+  if (order.status !== "confirmed") {
+    return new Response(
+      "This ticket is not available until the order is confirmed.",
+      { status: 403 },
+    );
   }
 
   const event = (order.event ?? {}) as {

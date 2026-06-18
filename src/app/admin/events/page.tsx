@@ -39,6 +39,7 @@ const blankEvent = {
   location: "",
   venue: "",
   date: "",
+  end_date: "",
   category: "" as EventCategory | "",
   image_url: "",
   images: [] as string[],
@@ -86,6 +87,13 @@ export default function AdminEventsPage() {
       toast.error("Event date must be in the future.");
       return;
     }
+    if (
+      newEvent.end_date &&
+      new Date(newEvent.end_date).getTime() <= new Date(newEvent.date).getTime()
+    ) {
+      toast.error("End date must be after the start date.");
+      return;
+    }
     const created = await createEvent({
       ...newEvent,
       category: newEvent.category as EventCategory,
@@ -105,6 +113,9 @@ export default function AdminEventsPage() {
       location: event.location,
       venue: event.venue,
       date: event.date ? event.date.replace(" ", "T").slice(0, 16) : "",
+      end_date: event.end_date
+        ? event.end_date.replace(" ", "T").slice(0, 16)
+        : "",
       category: event.category,
       image_url: event.image_url,
       images: event.images ?? [],
@@ -113,6 +124,14 @@ export default function AdminEventsPage() {
 
   const handleEditSave = async () => {
     if (!editEventId || !editEvent.title) return;
+    if (
+      editEvent.end_date &&
+      new Date(editEvent.end_date).getTime() <=
+        new Date(editEvent.date).getTime()
+    ) {
+      toast.error("End date must be after the start date.");
+      return;
+    }
     const updated = await updateEvent(editEventId, {
       ...editEvent,
       category: editEvent.category as EventCategory,
@@ -153,7 +172,7 @@ export default function AdminEventsPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="admin-date">Date & Time</Label>
+              <Label htmlFor="admin-date">Start Date & Time</Label>
               <Input
                 id="admin-date"
                 type="datetime-local"
@@ -184,6 +203,23 @@ export default function AdminEventsPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="admin-end-date">
+              End Date & Time{" "}
+              <span className="text-muted-foreground font-normal">
+                (optional, for multi-day events)
+              </span>
+            </Label>
+            <Input
+              id="admin-end-date"
+              type="datetime-local"
+              min={newEvent.date || minDate}
+              value={newEvent.end_date}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, end_date: e.target.value })
+              }
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="admin-venue">Venue</Label>
@@ -444,7 +480,7 @@ export default function AdminEventsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="edit-date">Date & Time</Label>
+                <Label htmlFor="edit-date">Start Date & Time</Label>
                 <Input
                   id="edit-date"
                   type="datetime-local"
@@ -475,6 +511,23 @@ export default function AdminEventsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-end-date">
+                End Date & Time{" "}
+                <span className="text-muted-foreground font-normal">
+                  (optional, for multi-day events)
+                </span>
+              </Label>
+              <Input
+                id="edit-end-date"
+                type="datetime-local"
+                min={editEvent.date}
+                value={editEvent.end_date}
+                onChange={(e) =>
+                  setEditEvent({ ...editEvent, end_date: e.target.value })
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-venue">Venue</Label>

@@ -68,7 +68,7 @@ function DashboardContent() {
           .from("hotel_bookings")
           .select("*, hotel:hotels(*), room_type:room_types(*)")
           .eq("user_id", user!.id)
-          .eq("payment_status", "paid")
+          .eq("status", "confirmed")
           .order("created_at", { ascending: false }),
       ]);
 
@@ -288,7 +288,7 @@ function DashboardContent() {
                                   {hotel?.name ?? "Hotel"}
                                 </h3>
                                 <Badge className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                  Paid
+                                  Confirmed
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">

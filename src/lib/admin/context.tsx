@@ -27,6 +27,7 @@ export type NewEventInput = {
   location: string;
   venue: string;
   date: string;
+  end_date?: string | null;
   category: EventCategory;
   image_url: string;
   images: string[];
@@ -103,6 +104,10 @@ type AdminDataValue = {
     name: string;
     emoji: string;
   }) => Promise<Category | null>;
+  updateCategory: (
+    id: string,
+    patch: { name: string; emoji: string },
+  ) => Promise<Category | null>;
   deleteCategory: (id: string) => Promise<boolean>;
 };
 
@@ -209,6 +214,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
         .from("events")
         .insert({
           ...input,
+          // Empty string would break the timestamptz column; store null.
+          end_date: input.end_date || null,
           organizer: "Admin",
           is_featured: false,
           is_published: true,
@@ -232,9 +239,13 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateEvent = useCallback(
     async (id: string, patch: EventPatch) => {
+      const normalized =
+        "end_date" in patch
+          ? { ...patch, end_date: patch.end_date || null }
+          : patch;
       const { data, error } = await supabase
         .from("events")
-        .update(patch)
+        .update(normalized)
         .eq("id", id)
         .select()
         .single();
@@ -479,20 +490,50 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       // A manual confirm reduces inventory too — but only if the payment
       // webhook hasn't already done it (guarded by slots_decremented).
       if (status === "confirmed") {
-        const { data: row } = await supabase
+        const { data: row, error: readErr } = await supabase
           .from("orders")
           .select("package_id,quantity,slots_decremented")
           .eq("id", id)
           .single();
-        if (row && !row.slots_decremented) {
-          await supabase.rpc("decrement_slots", {
+        if (readErr) {
+          // Most likely the slots_decremented column is missing — surface it
+          // so the admin knows to apply the migration, instead of silently
+          // confirming without reducing stock.
+          toast.error(
+            `Confirmed, but ticket count not updated: ${readErr.message}`,
+          );
+        } else if (row && !row.slots_decremented) {
+          const { error: rpcErr } = await supabase.rpc("decrement_slots", {
             p_package_id: row.package_id,
             p_quantity: row.quantity,
           });
-          await supabase
-            .from("orders")
-            .update({ slots_decremented: true })
-            .eq("id", id);
+          if (rpcErr) {
+            toast.error(`Could not reduce ticket count: ${rpcErr.message}`);
+          } else {
+            await supabase
+              .from("orders")
+              .update({ slots_decremented: true })
+              .eq("id", id);
+            // Reflect the new availability locally without a full reload.
+            setPackages((prev) => {
+              const next: Record<string, TicketPackage[]> = {};
+              for (const [eventId, list] of Object.entries(prev)) {
+                next[eventId] = list.map((p) =>
+                  p.id === row.package_id
+                    ? {
+                        ...p,
+                        available_slots: Math.max(
+                          0,
+                          p.available_slots - row.quantity,
+                        ),
+                      }
+                    : p,
+                );
+              }
+              return next;
+            });
+            toast.success("Order confirmed. Ticket count updated.");
+          }
         }
       }
 
@@ -548,6 +589,34 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
+  const updateCategory = useCallback(
+    async (id: string, patch: { name: string; emoji: string }) => {
+      const { data, error } = await supabase
+        .from("categories")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) {
+        if (error.code === "23505") {
+          toast.error(`Category "${patch.name}" already exists.`);
+        } else {
+          toast.error(error.message);
+        }
+        return null;
+      }
+      const cat = data as Category;
+      setCategories((prev) =>
+        prev
+          .map((c) => (c.id === id ? cat : c))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      toast.success("Category updated.");
+      return cat;
+    },
+    [supabase],
+  );
+
   const deleteCategory = useCallback(
     async (id: string) => {
       const { error } = await supabase
@@ -590,6 +659,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       updateBookingStatus,
       createCategory,
+      updateCategory,
       deleteCategory,
     }),
     [
@@ -616,6 +686,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       updateOrderStatus,
       updateBookingStatus,
       createCategory,
+      updateCategory,
       deleteCategory,
     ],
   );

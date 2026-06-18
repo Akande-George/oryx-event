@@ -125,6 +125,48 @@ export async function sendPayment(
   };
 }
 
+// Diagnostic helper: hits InitiatePayment (the simplest authenticated call) and
+// returns MyFatoorah's raw response. Used by /api/payments/diagnose to verify
+// the token/base-url pairing and see which currencies/methods are enabled.
+export async function diagnose(currencyIso?: string) {
+  const baseUrl = BASE_URL;
+  const keyPresent = !!API_KEY;
+  const keyLength = API_KEY?.length ?? 0;
+  const currency = currencyIso ?? CURRENCY ?? "QAR";
+
+  let httpStatus = 0;
+  let body = "";
+  let ok = false;
+  try {
+    const res = await fetch(`${baseUrl}/v2/InitiatePayment`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${requireKey()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ InvoiceAmount: 1, CurrencyIso: currency }),
+      cache: "no-store",
+    });
+    httpStatus = res.status;
+    body = await res.text();
+    try {
+      ok = JSON.parse(body)?.IsSuccess === true;
+    } catch {
+      ok = false;
+    }
+  } catch (err) {
+    body = err instanceof Error ? err.message : String(err);
+  }
+
+  return {
+    baseUrl,
+    keyPresent,
+    keyLength,
+    currencyTried: currency,
+    initiatePayment: { ok, httpStatus, body: body.slice(0, 1500) },
+  };
+}
+
 export type PaymentTransaction = {
   transactionId: string;
   status: string; // "Succss" (sic) | "Failed" | "Pending"

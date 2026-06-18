@@ -60,6 +60,15 @@ export default function EventDetailView({
     new Set([event.image_url, ...(event.images ?? [])].filter(Boolean)),
   );
 
+  // Multi-day events span more than one calendar day → show a date range.
+  const multiDay =
+    !!event.end_date &&
+    new Date(event.end_date).toDateString() !==
+      new Date(event.date).toDateString();
+  const dateValue = multiDay
+    ? `${formatDate(event.date)} → ${formatDate(event.end_date!)}`
+    : formatDate(event.date);
+
   const handleSelectPackage = (pkg: TicketPackage, qty: number) => {
     router.push(`/checkout?eventId=${event.id}&packageId=${pkg.id}&qty=${qty}`);
   };
@@ -144,8 +153,8 @@ export default function EventDetailView({
                 {[
                   {
                     icon: Calendar,
-                    label: "Date",
-                    value: formatDate(event.date),
+                    label: multiDay ? "Dates" : "Date",
+                    value: dateValue,
                     color: "text-primary",
                   },
                   {

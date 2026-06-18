@@ -14,7 +14,7 @@ export async function GET(
   const { data: booking, error } = await supabase
     .from("hotel_bookings")
     .select(
-      "id, nights, rooms, guests, check_in, check_out, estimated_total, payment_status, payment_reference, guest_name, hotel:hotels(name, address, city), room_type:room_types(name, beds)",
+      "id, status, nights, rooms, guests, check_in, check_out, estimated_total, payment_status, payment_reference, guest_name, hotel:hotels(name, address, city), room_type:room_types(name, beds)",
     )
     .eq("id", id)
     .single();
@@ -22,10 +22,11 @@ export async function GET(
   if (error || !booking) {
     return new Response("Booking not found.", { status: 404 });
   }
-  if (booking.payment_status !== "paid") {
-    return new Response("This pass is not available until payment is confirmed.", {
-      status: 403,
-    });
+  if (booking.status !== "confirmed") {
+    return new Response(
+      "This pass is not available until the booking is confirmed.",
+      { status: 403 },
+    );
   }
 
   const hotel = (booking.hotel ?? {}) as {
