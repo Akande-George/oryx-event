@@ -7,14 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
+import { requestPasswordReset } from "@/lib/supabase/actions";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    if (!email.trim()) return;
+    setLoading(true);
+    try {
+      await requestPasswordReset(email);
+    } finally {
+      setLoading(false);
+      setSent(true);
+    }
   };
 
   return (
@@ -69,7 +78,7 @@ export default function ForgotPasswordPage() {
                 <p>
                   If an account exists for{" "}
                   <span className="font-medium">{email}</span>, a reset link is on
-                  its way. Demo mode does not actually send email.
+                  its way. Check your spam folder if you don&apos;t see it.
                 </p>
               </div>
             </div>
@@ -95,6 +104,7 @@ export default function ForgotPasswordPage() {
 
               <Button
                 type="submit"
+                loading={loading}
                 className="w-full gradient-primary border-0 text-white shadow-lg shadow-primary/20 hover:opacity-90"
               >
                 Send reset link

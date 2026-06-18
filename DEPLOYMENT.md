@@ -19,6 +19,8 @@ deploys — use "Trigger deploy → Clear cache and deploy site").
 | `MYFATOORAH_API_KEY` | payment gateway | sandbox or live token |
 | `MYFATOORAH_BASE_URL` | payment gateway | `https://apitest.myfatoorah.com` (sandbox) or `https://api-qa.myfatoorah.com` (live, Qatar) |
 | `NEXT_PUBLIC_SITE_URL` | payment callbacks | your prod URL, **no trailing slash**, HTTPS, e.g. `https://your-site.netlify.app` |
+| `RESEND_API_KEY` | email (Resend) | **secret** — from resend.com → API Keys |
+| `RESEND_FROM` | email sender | `Oryx Events <onboarding@resend.dev>` until your domain is verified, then `Oryx Events <noreply@yourdomain.com>` |
 
 ## Symptoms when a variable is missing
 

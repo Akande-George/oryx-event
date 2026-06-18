@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "./server";
 import { createServiceClient } from "./service";
+import {
+  sendBookingConfirmed,
+  sendBookingReceived,
+  sendOrderConfirmation,
+} from "@/lib/email/notifications";
 
 export async function signIn(formData: FormData) {
   // Use demo credentials for UI development
@@ -149,5 +154,92 @@ export async function createHotelBooking(data: {
 
   if (error) return { error: error.message };
 
+  // Fire-and-forget "we received your request" email.
+  try {
+    await sendBookingReceived(booking.id);
+  } catch (e) {
+    console.error("booking received email failed:", e);
+  }
+
   return { booking };
+}
+
+// Verify the caller is an admin (used to gate notification actions).
+async function callerIsAdmin() {
+  const userClient = await createClient();
+  const {
+    data: { user },
+  } = await userClient.auth.getUser();
+  if (!user?.id) return false;
+  const { data: profile } = await userClient
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  return profile?.role === "admin";
+}
+
+// Called by the admin after confirming an order/booking, to email the customer.
+// Re-reads the row server-side and only sends when it is actually confirmed.
+export async function notifyOrderConfirmed(orderId: string) {
+  if (!(await callerIsAdmin())) return { error: "Not authorized" };
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("id", orderId)
+    .single();
+  if (data?.status !== "confirmed") return { skipped: true };
+  try {
+    await sendOrderConfirmation(orderId);
+    return { ok: true };
+  } catch (e) {
+    console.error("order confirmation email failed:", e);
+    return { error: "send failed" };
+  }
+}
+
+export async function notifyBookingConfirmed(bookingId: string) {
+  if (!(await callerIsAdmin())) return { error: "Not authorized" };
+  try {
+    await sendBookingConfirmed(bookingId);
+    return { ok: true };
+  } catch (e) {
+    console.error("booking confirmation email failed:", e);
+    return { error: "send failed" };
+  }
+}
+
+// Password reset via Resend: generate a real Supabase recovery link with the
+// service role, then email it through our own branded template. Always returns
+// a generic success so we don't leak which emails are registered.
+export async function requestPasswordReset(email: string) {
+  const clean = email.trim().toLowerCase();
+  if (!clean) return { ok: true };
+
+  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim().replace(/\/$/, "");
+  const supabase = createServiceClient();
+
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "recovery",
+    email: clean,
+    options: { redirectTo: `${base}/auth/login` },
+  });
+
+  // No such user (or any error) → still return ok to avoid email enumeration.
+  if (error || !data?.properties?.action_link) {
+    return { ok: true };
+  }
+
+  try {
+    const { passwordResetEmail } = await import("@/lib/email/templates");
+    const { sendEmail } = await import("@/lib/email/resend");
+    const { subject, html } = passwordResetEmail({
+      resetUrl: data.properties.action_link,
+    });
+    await sendEmail({ to: clean, subject, html });
+  } catch (e) {
+    console.error("password reset email failed:", e);
+  }
+  return { ok: true };
 }

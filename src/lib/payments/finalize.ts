@@ -9,6 +9,10 @@ import {
   getPaymentStatus,
   PaymentStatusResult,
 } from "@/lib/payments/myfatoorah";
+import {
+  sendBookingConfirmed,
+  sendOrderConfirmation,
+} from "@/lib/email/notifications";
 
 export type FinalizeOutcome = {
   kind: "order" | "booking";
@@ -96,6 +100,16 @@ export async function finalizeFromVerifiedStatus(
           .eq("id", id);
       }
     }
+
+    // Email the customer their confirmation (with PDF link). Never let an
+    // email failure break the payment finalization.
+    try {
+      if (kind === "order") await sendOrderConfirmation(id);
+      else await sendBookingConfirmed(id);
+    } catch (e) {
+      console.error("confirmation email failed:", e);
+    }
+
     return { kind, id, outcome: "paid" };
   }
 

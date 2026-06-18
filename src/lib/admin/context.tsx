@@ -11,6 +11,10 @@ import {
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
+  notifyBookingConfirmed,
+  notifyOrderConfirmed,
+} from "@/lib/supabase/actions";
+import {
   Category,
   Event,
   EventCategory,
@@ -535,6 +539,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
             toast.success("Order confirmed. Ticket count updated.");
           }
         }
+        // Email the customer their confirmation (best-effort).
+        notifyOrderConfirmed(id).catch(() => {});
       }
 
       setOrders((prev) =>
@@ -554,6 +560,10 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         toast.error(error.message);
         return false;
+      }
+      // Email the guest when their booking is processed/confirmed.
+      if (status === "confirmed") {
+        notifyBookingConfirmed(id).catch(() => {});
       }
       setBookings((prev) =>
         prev.map((b) => (b.id === id ? { ...b, status } : b)),
