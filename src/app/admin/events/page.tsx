@@ -41,6 +41,7 @@ const blankEvent = {
   date: "",
   end_date: "",
   category: "" as EventCategory | "",
+  organizer: "",
   image_url: "",
   images: [] as string[],
 };
@@ -117,6 +118,7 @@ export default function AdminEventsPage() {
         ? event.end_date.replace(" ", "T").slice(0, 16)
         : "",
       category: event.category,
+      organizer: event.organizer ?? "",
       image_url: event.image_url,
       images: event.images ?? [],
     });
@@ -240,6 +242,17 @@ export default function AdminEventsPage() {
               value={newEvent.location}
               onChange={(e) =>
                 setNewEvent({ ...newEvent, location: e.target.value })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="admin-organizer">Organizer</Label>
+            <Input
+              id="admin-organizer"
+              placeholder="Oryx Events"
+              value={newEvent.organizer}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, organizer: e.target.value })
               }
             />
           </div>
@@ -546,6 +559,16 @@ export default function AdminEventsPage() {
                 value={editEvent.location}
                 onChange={(e) =>
                   setEditEvent({ ...editEvent, location: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-organizer">Organizer</Label>
+              <Input
+                id="edit-organizer"
+                value={editEvent.organizer}
+                onChange={(e) =>
+                  setEditEvent({ ...editEvent, organizer: e.target.value })
                 }
               />
             </div>

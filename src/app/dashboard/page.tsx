@@ -68,7 +68,7 @@ function DashboardContent() {
           .from("hotel_bookings")
           .select("*, hotel:hotels(*), room_type:room_types(*)")
           .eq("user_id", user!.id)
-          .eq("status", "confirmed")
+          .neq("status", "cancelled")
           .order("created_at", { ascending: false }),
       ]);
 
@@ -212,7 +212,9 @@ function DashboardContent() {
                   Upcoming ({upcoming.length})
                 </TabsTrigger>
                 <TabsTrigger value="past">Past ({past.length})</TabsTrigger>
-                <TabsTrigger value="stays">Stays ({stays.length})</TabsTrigger>
+                <TabsTrigger value="stays">
+                  Hotel Bookings ({stays.length})
+                </TabsTrigger>
               </TabsList>
 
               {(["upcoming", "past"] as const).map((tab) => {
@@ -254,10 +256,10 @@ function DashboardContent() {
                   <div className="text-center py-16 bg-muted/20 rounded-2xl border border-border/50">
                     <BedDouble className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
                     <h3 className="font-heading font-semibold mb-2">
-                      No hotel stays
+                      No hotel bookings
                     </h3>
                     <p className="text-sm text-muted-foreground mb-5">
-                      Your paid hotel bookings will appear here.
+                      Your hotel booking requests and stays will appear here.
                     </p>
                     <Button
                       asChild
@@ -287,8 +289,16 @@ function DashboardContent() {
                                 <h3 className="font-heading font-semibold text-foreground truncate">
                                   {hotel?.name ?? "Hotel"}
                                 </h3>
-                                <Badge className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                  Confirmed
+                                <Badge
+                                  className={
+                                    booking.status === "confirmed"
+                                      ? "bg-green-50 text-green-700 border-green-200 text-xs"
+                                      : "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                                  }
+                                >
+                                  {booking.status === "confirmed"
+                                    ? "Confirmed"
+                                    : "Pending"}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
@@ -310,19 +320,26 @@ function DashboardContent() {
                                 </span>
                               </div>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 border-border/50 text-xs h-8 shrink-0"
-                              asChild
-                            >
-                              <a
-                                href={`/api/tickets/booking/${booking.id}`}
-                                download
+                            {booking.status === "confirmed" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 border-border/50 text-xs h-8 shrink-0"
+                                asChild
                               >
-                                <Download className="w-3.5 h-3.5" /> Download Pass
-                              </a>
-                            </Button>
+                                <a
+                                  href={`/api/tickets/booking/${booking.id}`}
+                                  download
+                                >
+                                  <Download className="w-3.5 h-3.5" /> Download
+                                  Pass
+                                </a>
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                Awaiting confirmation
+                              </span>
+                            )}
                           </div>
                           {booking.payment_reference && (
                             <p className="text-xs text-muted-foreground mt-2">

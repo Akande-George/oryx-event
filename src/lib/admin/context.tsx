@@ -33,6 +33,7 @@ export type NewEventInput = {
   date: string;
   end_date?: string | null;
   category: EventCategory;
+  organizer: string;
   image_url: string;
   images: string[];
 };
@@ -220,7 +221,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
           ...input,
           // Empty string would break the timestamptz column; store null.
           end_date: input.end_date || null,
-          organizer: "Admin",
+          organizer: input.organizer?.trim() || "Oryx Events",
           is_featured: false,
           is_published: true,
           image_url:
