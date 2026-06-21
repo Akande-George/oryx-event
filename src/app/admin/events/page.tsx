@@ -156,7 +156,7 @@ export default function AdminEventsPage() {
         <Plus className="w-4 h-4" />{" "}
         <span className="hidden sm:inline">Create Event</span>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading">Create New Event</DialogTitle>
         </DialogHeader>
@@ -476,7 +476,7 @@ export default function AdminEventsPage() {
         open={!!editEventId}
         onOpenChange={(open) => !open && setEditEventId(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Edit Event</DialogTitle>
           </DialogHeader>

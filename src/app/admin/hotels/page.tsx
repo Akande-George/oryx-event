@@ -186,7 +186,7 @@ export default function AdminHotelsPage() {
           <BedDouble className="w-4 h-4" />{" "}
           <span className="hidden sm:inline">Add Room</span>
         </DialogTrigger>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Add Room Type</DialogTitle>
           </DialogHeader>
@@ -303,7 +303,7 @@ export default function AdminHotelsPage() {
           <Plus className="w-4 h-4" />{" "}
           <span className="hidden sm:inline">Create Hotel</span>
         </DialogTrigger>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Create New Hotel</DialogTitle>
           </DialogHeader>
@@ -716,7 +716,7 @@ export default function AdminHotelsPage() {
 
       {/* Edit Hotel Dialog */}
       <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Edit Hotel</DialogTitle>
           </DialogHeader>

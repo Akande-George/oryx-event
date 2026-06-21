@@ -50,6 +50,14 @@ function DashboardContent() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [stays, setStays] = useState<HotelBooking[]>([]);
+  // Deep-link to the Hotel Bookings tab via /dashboard#bookings (footer link).
+  // The dashboard renders only client-side (RouteGuard gates it), so reading
+  // the hash in the initializer is safe — no SSR/hydration mismatch.
+  const [tab, setTab] = useState(() =>
+    typeof window !== "undefined" && window.location.hash === "#bookings"
+      ? "stays"
+      : "upcoming",
+  );
 
   useEffect(() => {
     if (!user?.id) return;
@@ -206,7 +214,7 @@ function DashboardContent() {
               </Button>
             </div>
 
-            <Tabs defaultValue="upcoming">
+            <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="mb-6 bg-muted/30 border border-border/50">
                 <TabsTrigger value="upcoming">
                   Upcoming ({upcoming.length})

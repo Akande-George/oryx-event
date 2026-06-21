@@ -123,6 +123,7 @@ export default function Footer() {
                 { label: "Sign In", href: "/auth/login" },
                 { label: "Create Account", href: "/auth/signup" },
                 { label: "My Tickets", href: "/dashboard" },
+                { label: "My Bookings", href: "/dashboard#bookings" },
                 { label: "Organizer Portal", href: "/admin" },
               ].map((link) => (
                 <li key={link.href}>
