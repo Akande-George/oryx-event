@@ -54,7 +54,7 @@ function LoginForm() {
         <div className="absolute top-1/4 -left-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 -right-16 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
         <div className="relative text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-6 shadow-xl">
             <Image src="/logo.png" alt="Oryx Group" width={40} height={40} />
           </div>
           <h2 className="font-heading font-bold text-4xl text-white mb-4">
