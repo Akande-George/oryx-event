@@ -27,11 +27,59 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
 import { useAdminData } from "@/lib/admin/context";
-import { Event, EventCategory } from "@/types";
+import { Event, EventCategory, TicketPackage } from "@/types";
 import { toast } from "sonner";
 import ImageUploadInput from "@/components/ui/ImageUploadInput";
 import MultiImageUploadInput from "@/components/ui/MultiImageUploadInput";
 import PageHeader from "../_components/PageHeader";
+
+// One editable row for a ticket package's total count, used in the edit dialog.
+function PackageTicketRow({
+  pkg,
+  onSave,
+}: {
+  pkg: TicketPackage;
+  onSave: (newTotal: number) => Promise<boolean>;
+}) {
+  const sold = pkg.total_slots - pkg.available_slots;
+  const [value, setValue] = useState(String(pkg.total_slots));
+  const [saving, setSaving] = useState(false);
+  const changed = value !== String(pkg.total_slots);
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(parseInt(value, 10));
+    setSaving(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">
+          {pkg.name}{" "}
+          <span className="text-xs text-muted-foreground">({pkg.tier})</span>
+        </p>
+        <p className="text-xs text-muted-foreground">{sold} sold</p>
+      </div>
+      <Input
+        type="number"
+        min={sold}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-24"
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={!changed || saving}
+        onClick={save}
+      >
+        Save
+      </Button>
+    </div>
+  );
+}
 
 const blankEvent = {
   title: "",
@@ -50,10 +98,12 @@ export default function AdminEventsPage() {
   const {
     events,
     packages,
+    orders,
     categories,
     createEvent,
     updateEvent,
     deleteEvent,
+    updatePackageTotal,
   } = useAdminData();
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -339,11 +389,15 @@ export default function AdminEventsPage() {
               <tbody>
                 {events.map((event) => {
                   const pkgs = packages[event.id] ?? [];
-                  const sold = pkgs.reduce(
-                    (s, p) => s + (p.total_slots - p.available_slots),
-                    0,
-                  );
                   const total = pkgs.reduce((s, p) => s + p.total_slots, 0);
+                  // Tickets bought = quantities from confirmed orders for this
+                  // event (independent of the slot-decrement mechanism).
+                  const sold = orders
+                    .filter(
+                      (o) =>
+                        o.event_id === event.id && o.status === "confirmed",
+                    )
+                    .reduce((s, o) => s + o.quantity, 0);
                   return (
                     <tr
                       key={event.id}
@@ -601,6 +655,25 @@ export default function AdminEventsPage() {
                 folder="oryx-events"
               />
             </div>
+
+            {editEventId && (packages[editEventId]?.length ?? 0) > 0 && (
+              <div className="space-y-2">
+                <Label>Ticket Packages</Label>
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  {(packages[editEventId] ?? []).map((pkg) => (
+                    <PackageTicketRow
+                      key={pkg.id}
+                      pkg={pkg}
+                      onSave={(n) => updatePackageTotal(pkg, n)}
+                    />
+                  ))}
+                  <p className="text-xs text-muted-foreground">
+                    Sold tickets are kept — you can&apos;t set a total below what
+                    has already sold. Add new packages from the Packages tab.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditEventId(null)}>

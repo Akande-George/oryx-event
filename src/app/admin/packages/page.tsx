@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Plus, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Edit, Plus, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -24,7 +24,9 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { toast } from "sonner";
 import { useAdminData } from "@/lib/admin/context";
+import { TicketPackage } from "@/types";
 import PageHeader from "../_components/PageHeader";
 
 const TIER_OPTIONS = ["Regular", "VIP", "Table"] as const;
@@ -43,21 +45,64 @@ export default function AdminPackagesPage() {
     events,
     packages,
     createPackage,
+    updatePackage,
     togglePackage,
     deletePackage,
   } = useAdminData();
   const [addOpen, setAddOpen] = useState(false);
   const [newPkg, setNewPkg] = useState(blankPkg);
 
-  const handleAdd = async () => {
-    if (
-      !newPkg.event_id ||
-      !newPkg.name ||
-      !newPkg.tier ||
-      !newPkg.price ||
-      !newPkg.total_slots
-    )
+  // Edit state — keyed by the package being edited.
+  const [editPkg, setEditPkg] = useState<TicketPackage | null>(null);
+  const [editForm, setEditForm] = useState(blankPkg);
+
+  const openEdit = (pkg: TicketPackage) => {
+    setEditPkg(pkg);
+    setEditForm({
+      event_id: pkg.event_id,
+      name: pkg.name,
+      tier: pkg.tier,
+      price: String(pkg.price),
+      total_slots: String(pkg.total_slots),
+      perks: pkg.perks.join(", "),
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editPkg) return;
+    const missing: string[] = [];
+    if (!editForm.name) missing.push("Package Name");
+    if (!editForm.tier) missing.push("Tier");
+    if (!editForm.price) missing.push("Price");
+    if (!editForm.total_slots) missing.push("Total Slots");
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.join(", ")}.`);
       return;
+    }
+    const perks = editForm.perks
+      ? editForm.perks.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    const ok = await updatePackage(editPkg, {
+      name: editForm.name,
+      tier: editForm.tier as "Regular" | "VIP" | "Table",
+      price: parseFloat(editForm.price),
+      perks,
+      total_slots: parseInt(editForm.total_slots, 10),
+    });
+    if (ok) setEditPkg(null);
+  };
+
+  const handleAdd = async () => {
+    const missing: string[] = [];
+    if (!newPkg.event_id) missing.push("Event");
+    if (!newPkg.name) missing.push("Package Name");
+    if (!newPkg.tier) missing.push("Tier");
+    if (!newPkg.price) missing.push("Price");
+    if (!newPkg.total_slots) missing.push("Total Slots");
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.join(", ")}.`);
+      return;
+    }
     const perks = newPkg.perks
       ? newPkg.perks
           .split(",")
@@ -315,6 +360,15 @@ export default function AdminPackagesPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="w-7 h-7 text-muted-foreground hover:text-primary"
+                                onClick={() => openEdit(pkg)}
+                                title="Edit package"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="w-7 h-7 text-muted-foreground hover:text-primary"
                                 onClick={() => togglePackage(pkg)}
                                 title={
                                   pkg.is_available
@@ -349,6 +403,105 @@ export default function AdminPackagesPage() {
           );
         })}
       </div>
+
+      {/* Edit Package Dialog */}
+      <Dialog open={!!editPkg} onOpenChange={(open) => !open && setEditPkg(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Edit Package</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-pkg-name">Package Name</Label>
+                <Input
+                  id="edit-pkg-name"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tier</Label>
+                <Select
+                  value={editForm.tier}
+                  onValueChange={(v) =>
+                    v &&
+                    setEditForm({
+                      ...editForm,
+                      tier: v as "Regular" | "VIP" | "Table",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tier…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIER_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-pkg-price">Price (QAR)</Label>
+                <Input
+                  id="edit-pkg-price"
+                  type="number"
+                  min="0"
+                  value={editForm.price}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, price: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-pkg-slots">Total Tickets</Label>
+                <Input
+                  id="edit-pkg-slots"
+                  type="number"
+                  min={editPkg ? editPkg.total_slots - editPkg.available_slots : 0}
+                  value={editForm.total_slots}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, total_slots: e.target.value })
+                  }
+                />
+                {editPkg && (
+                  <p className="text-xs text-muted-foreground">
+                    {editPkg.total_slots - editPkg.available_slots} sold
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-pkg-perks">Perks (comma-separated)</Label>
+              <Input
+                id="edit-pkg-perks"
+                value={editForm.perks}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, perks: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPkg(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              className="gradient-primary border-0 text-white"
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -99,7 +99,21 @@ type AdminDataValue = {
   deleteRoom: (room: RoomType) => Promise<void>;
 
   createPackage: (input: NewPackageInput) => Promise<TicketPackage | null>;
+  updatePackage: (
+    pkg: TicketPackage,
+    patch: {
+      name: string;
+      tier: "Regular" | "VIP" | "Table";
+      price: number;
+      perks: string[];
+      total_slots: number;
+    },
+  ) => Promise<boolean>;
   togglePackage: (pkg: TicketPackage) => Promise<void>;
+  updatePackageTotal: (
+    pkg: TicketPackage,
+    newTotal: number,
+  ) => Promise<boolean>;
   deletePackage: (pkg: TicketPackage) => Promise<void>;
 
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<boolean>;
@@ -439,6 +453,57 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
+  // Edit a package's details. If total_slots changes, available_slots is
+  // recomputed so already-sold tickets are preserved.
+  const updatePackage = useCallback(
+    async (
+      pkg: TicketPackage,
+      patch: {
+        name: string;
+        tier: "Regular" | "VIP" | "Table";
+        price: number;
+        perks: string[];
+        total_slots: number;
+      },
+    ) => {
+      const sold = pkg.total_slots - pkg.available_slots;
+      if (patch.total_slots < sold) {
+        toast.error(
+          `Can't set total below ${sold} — that many tickets are already sold.`,
+        );
+        return false;
+      }
+      const available = patch.total_slots - sold;
+      const { data, error } = await supabase
+        .from("ticket_packages")
+        .update({
+          name: patch.name,
+          tier: patch.tier,
+          price: patch.price,
+          perks: patch.perks,
+          total_slots: patch.total_slots,
+          available_slots: available,
+        })
+        .eq("id", pkg.id)
+        .select()
+        .single();
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      const updated = data as TicketPackage;
+      setPackages((prev) => ({
+        ...prev,
+        [pkg.event_id]: (prev[pkg.event_id] ?? []).map((p) =>
+          p.id === pkg.id ? updated : p,
+        ),
+      }));
+      toast.success("Package updated.");
+      return true;
+    },
+    [supabase],
+  );
+
   const togglePackage = useCallback(
     async (pkg: TicketPackage) => {
       const next = !pkg.is_available;
@@ -456,6 +521,48 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
           p.id === pkg.id ? { ...p, is_available: next } : p,
         ),
       }));
+    },
+    [supabase],
+  );
+
+  // Change the total number of tickets for a package. available_slots is
+  // recomputed so already-sold tickets are preserved (never goes negative).
+  const updatePackageTotal = useCallback(
+    async (pkg: TicketPackage, newTotal: number) => {
+      if (!Number.isFinite(newTotal) || newTotal < 0) {
+        toast.error("Enter a valid number of tickets.");
+        return false;
+      }
+      const sold = pkg.total_slots - pkg.available_slots;
+      if (newTotal < sold) {
+        toast.error(
+          `Can't set below ${sold} — that many tickets are already sold.`,
+        );
+        return false;
+      }
+      const available = newTotal - sold;
+      const { error } = await supabase
+        .from("ticket_packages")
+        .update({
+          total_slots: newTotal,
+          available_slots: available,
+          is_available: available > 0 ? pkg.is_available : false,
+        })
+        .eq("id", pkg.id);
+      if (error) {
+        toast.error(error.message);
+        return false;
+      }
+      setPackages((prev) => ({
+        ...prev,
+        [pkg.event_id]: (prev[pkg.event_id] ?? []).map((p) =>
+          p.id === pkg.id
+            ? { ...p, total_slots: newTotal, available_slots: available }
+            : p,
+        ),
+      }));
+      toast.success("Ticket count updated.");
+      return true;
     },
     [supabase],
   );
@@ -665,7 +772,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       toggleRoom,
       deleteRoom,
       createPackage,
+      updatePackage,
       togglePackage,
+      updatePackageTotal,
       deletePackage,
       updateOrderStatus,
       updateBookingStatus,
@@ -692,7 +801,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       toggleRoom,
       deleteRoom,
       createPackage,
+      updatePackage,
       togglePackage,
+      updatePackageTotal,
       deletePackage,
       updateOrderStatus,
       updateBookingStatus,

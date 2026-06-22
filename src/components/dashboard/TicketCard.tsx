@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Download, MapPin, QrCode, X } from "lucide-react";
+import { Calendar, Download, MapPin, QrCode, Ticket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,6 +63,10 @@ export default function TicketCard({ order }: TicketCardProps) {
                     <MapPin className="w-3 h-3 text-secondary" /> {order.event.venue}
                   </span>
                 )}
+                <span className="flex items-center gap-1">
+                  <Ticket className="w-3 h-3 text-primary" />
+                  {order.quantity} ticket{order.quantity > 1 ? "s" : ""}
+                </span>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-xs text-muted-foreground">
@@ -149,7 +153,12 @@ export default function TicketCard({ order }: TicketCardProps) {
               <div className="text-center">
                 <p className="font-heading font-semibold text-foreground">{order.event?.title}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {order.ticket_package?.name} × {order.quantity}
+                  {order.ticket_package?.name} · {order.quantity} ticket
+                  {order.quantity > 1 ? "s" : ""}
+                </p>
+                <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs font-medium px-3 py-1">
+                  <Ticket className="w-3 h-3" />
+                  {order.quantity} ticket{order.quantity > 1 ? "s" : ""} booked
                 </p>
                 {order.payment_reference && (
                   <p className="text-xs font-mono text-muted-foreground mt-1">{order.payment_reference}</p>
