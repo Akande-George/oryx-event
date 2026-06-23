@@ -223,7 +223,7 @@ export async function requestPasswordReset(email: string) {
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "recovery",
     email: clean,
-    options: { redirectTo: `${base}/auth/login` },
+    options: { redirectTo: `${base}/auth/reset-password` },
   });
 
   // No such user (or any error) → still return ok to avoid email enumeration.
