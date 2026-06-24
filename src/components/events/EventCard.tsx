@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Calendar, MapPin, Clock, ArrowUpRight, Ticket } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Event } from "@/types";
-import { formatDate, formatTime, formatPrice } from "@/lib/utils";
+import { formatDate, formatTime, formatPrice, stripHtml } from "@/lib/utils";
 
 interface EventCardProps {
   event: Event;
@@ -94,7 +94,7 @@ export default function EventCard({ event, featured = false }: EventCardProps) {
 
           {featured && (
             <p className="mb-3 line-clamp-2 text-sm text-foreground/75">
-              {event.description}
+              {stripHtml(event.description)}
             </p>
           )}
 

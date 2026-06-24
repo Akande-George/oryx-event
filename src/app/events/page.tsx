@@ -33,7 +33,7 @@ import Footer from "@/components/layout/Footer";
 import EventCard from "@/components/events/EventCard";
 import { createClient } from "@/lib/supabase/client";
 import { Event } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml } from "@/lib/utils";
 import { useCategories } from "@/hooks/useCategories";
 
 const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan", "Abuja"];
@@ -83,7 +83,7 @@ export default function EventsPage() {
       nextEvents = nextEvents.filter(
         (e) =>
           e.title.toLowerCase().includes(q) ||
-          e.description.toLowerCase().includes(q) ||
+          stripHtml(e.description).toLowerCase().includes(q) ||
           e.location.toLowerCase().includes(q),
       );
     }

@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -31,6 +30,7 @@ import { Event, EventCategory, TicketPackage } from "@/types";
 import { toast } from "sonner";
 import ImageUploadInput from "@/components/ui/ImageUploadInput";
 import MultiImageUploadInput from "@/components/ui/MultiImageUploadInput";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 import PageHeader from "../_components/PageHeader";
 
 // One editable row for a ticket package's total count, used in the edit dialog.
@@ -206,7 +206,7 @@ export default function AdminEventsPage() {
         <Plus className="w-4 h-4" />{" "}
         <span className="hidden sm:inline">Create Event</span>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading">Create New Event</DialogTitle>
         </DialogHeader>
@@ -307,14 +307,11 @@ export default function AdminEventsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="admin-desc">Description</Label>
-            <Textarea
-              id="admin-desc"
-              placeholder="Describe your event…"
-              rows={3}
+            <Label>Description</Label>
+            <RichTextEditor
               value={newEvent.description}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, description: e.target.value })
+              onChange={(html) =>
+                setNewEvent({ ...newEvent, description: html })
               }
             />
           </div>
@@ -530,7 +527,7 @@ export default function AdminEventsPage() {
         open={!!editEventId}
         onOpenChange={(open) => !open && setEditEventId(null)}
       >
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Edit Event</DialogTitle>
           </DialogHeader>
@@ -627,13 +624,11 @@ export default function AdminEventsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-desc">Description</Label>
-              <Textarea
-                id="edit-desc"
-                rows={3}
+              <Label>Description</Label>
+              <RichTextEditor
                 value={editEvent.description}
-                onChange={(e) =>
-                  setEditEvent({ ...editEvent, description: e.target.value })
+                onChange={(html) =>
+                  setEditEvent({ ...editEvent, description: html })
                 }
               />
             </div>

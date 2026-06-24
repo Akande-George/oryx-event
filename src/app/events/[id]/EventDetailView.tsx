@@ -25,6 +25,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TicketPackageCard from "@/components/events/TicketPackageCard";
 import GalleryCollage from "@/components/ui/GalleryCollage";
+import RichText from "@/components/ui/RichText";
 import { Event, TicketPackage } from "@/types";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 
@@ -207,9 +208,7 @@ export default function EventDetailView({
               </TabsList>
 
               <TabsContent value="about" className="space-y-4">
-                <p className="text-muted-foreground leading-relaxed">
-                  {event.description}
-                </p>
+                <RichText html={event.description} />
                 <div className="flex items-start gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20">
                   <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-foreground">
