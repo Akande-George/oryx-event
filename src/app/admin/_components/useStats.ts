@@ -5,10 +5,18 @@ import { useAdminData } from "@/lib/admin/context";
 import { formatPrice } from "@/lib/utils";
 
 export function useStats() {
-  const { events, orders } = useAdminData();
+  const { events, orders, bookings } = useAdminData();
   const confirmed = orders.filter((o) => o.status === "confirmed");
+  const confirmedBookings = bookings.filter((b) => b.status === "confirmed");
   const totalTicketsSold = confirmed.reduce((s, o) => s + o.quantity, 0);
-  const totalRevenue = confirmed.reduce((s, o) => s + o.total_price, 0);
+
+  // Revenue combines event ticket sales and confirmed hotel bookings.
+  const eventRevenue = confirmed.reduce((s, o) => s + o.total_price, 0);
+  const hotelRevenue = confirmedBookings.reduce(
+    (s, b) => s + b.estimated_total,
+    0,
+  );
+  const totalRevenue = eventRevenue + hotelRevenue;
 
   const stats = [
     {
@@ -41,5 +49,12 @@ export function useStats() {
     },
   ];
 
-  return { stats, totalRevenue, totalTicketsSold };
+  return {
+    stats,
+    totalRevenue,
+    eventRevenue,
+    hotelRevenue,
+    totalTicketsSold,
+    confirmedBookingsCount: confirmedBookings.length,
+  };
 }

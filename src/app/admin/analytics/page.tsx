@@ -10,7 +10,7 @@ import { useStats } from "../_components/useStats";
 
 export default function AdminAnalyticsPage() {
   const { events, packages, orders } = useAdminData();
-  const { stats, totalRevenue } = useStats();
+  const { stats, totalRevenue, eventRevenue, hotelRevenue } = useStats();
   const confirmedOrders = orders.filter((o) => o.status === "confirmed");
 
   // Revenue grouped by event category, derived from confirmed orders.
@@ -130,25 +130,30 @@ export default function AdminAnalyticsPage() {
                   <p className="font-heading font-bold text-xl text-foreground">
                     {formatPrice(totalRevenue)}
                   </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Avg. Order Value
-                  </p>
-                  <p className="font-heading font-bold text-xl text-foreground">
-                    {formatPrice(
-                      Math.round(
-                        totalRevenue / (confirmedOrders.length || 1),
-                      ),
-                    )}
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Events + Hotels
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">
-                    Confirmed Orders
+                    Event Revenue
                   </p>
                   <p className="font-heading font-bold text-xl text-foreground">
-                    {confirmedOrders.length}
+                    {formatPrice(eventRevenue)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {confirmedOrders.length} ticket orders
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Hotel Revenue
+                  </p>
+                  <p className="font-heading font-bold text-xl text-foreground">
+                    {formatPrice(hotelRevenue)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Confirmed bookings
                   </p>
                 </div>
               </div>
