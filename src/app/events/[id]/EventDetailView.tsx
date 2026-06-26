@@ -87,8 +87,6 @@ export default function EventDetailView({
           sizes="100vw"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/30 to-transparent" />
 
         <div className="absolute top-20 left-4 sm:left-8">
           <Button
@@ -133,7 +131,7 @@ export default function EventDetailView({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-28 pb-16 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <div className="mb-8">
