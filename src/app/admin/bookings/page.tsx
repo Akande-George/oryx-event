@@ -194,7 +194,7 @@ export default function AdminBookingsPage() {
           open={!!selected}
           onOpenChange={(open) => !open && setSelected(null)}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-heading">Booking Request</DialogTitle>
             </DialogHeader>
@@ -336,7 +336,7 @@ export default function AdminBookingsPage() {
                       subject={`Your booking request for ${
                         hotel?.name ?? "your stay"
                       }`}
-                      label="guest email"
+                      label="email"
                     />
                   </div>
                 );

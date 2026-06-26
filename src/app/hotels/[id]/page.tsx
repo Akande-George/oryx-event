@@ -29,6 +29,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import RoomCard from "@/components/hotels/RoomCard";
 import GalleryCollage from "@/components/ui/GalleryCollage";
+import RichText from "@/components/ui/RichText";
 import { createClient } from "@/lib/supabase/client";
 import { Hotel, RoomType } from "@/types";
 import { cn, nightsBetween, formatPrice } from "@/lib/utils";
@@ -241,9 +242,7 @@ export default function HotelDetailPage({
               </TabsList>
 
               <TabsContent value="about" className="space-y-4">
-                <p className="text-muted-foreground leading-relaxed">
-                  {hotel.description}
-                </p>
+                <RichText html={hotel.description} />
                 <div className="flex items-start gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20">
                   <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-foreground">

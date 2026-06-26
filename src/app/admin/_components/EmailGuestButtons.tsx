@@ -29,18 +29,20 @@ export default function EmailGuestButtons({
   };
 
   return (
-    <div className="flex gap-2 w-full">
+    <div className="flex flex-col sm:flex-row gap-2 w-full">
       <Button
         variant="outline"
-        className="flex-1 gap-2"
+        className="flex-1 min-w-0 gap-2"
         onClick={copy}
         title={email}
       >
-        <Copy className="w-4 h-4" /> Copy {label}
+        <Copy className="w-4 h-4 shrink-0" />
+        <span className="truncate">Copy {label}</span>
       </Button>
-      <Button variant="outline" className="flex-1 gap-2" asChild>
+      <Button variant="outline" className="flex-1 min-w-0 gap-2" asChild>
         <a href={gmailUrl} target="_blank" rel="noopener noreferrer">
-          <Mail className="w-4 h-4" /> Open in Gmail
+          <Mail className="w-4 h-4 shrink-0" />
+          <span className="truncate">Open in Gmail</span>
         </a>
       </Button>
     </div>

@@ -166,7 +166,7 @@ export default function AdminAttendeesPage() {
           open={!!selected}
           onOpenChange={(open) => !open && setSelected(null)}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-heading">
                 Attendee Details
@@ -257,7 +257,7 @@ export default function AdminAttendeesPage() {
                   subject={`Your ticket for ${
                     selected.event?.title ?? "the event"
                   }`}
-                  label="attendee email"
+                  label="email"
                 />
               </div>
             )}

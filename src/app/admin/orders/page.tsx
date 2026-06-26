@@ -178,7 +178,7 @@ export default function AdminOrdersPage() {
           open={!!selectedOrder}
           onOpenChange={(open) => !open && setSelectedOrder(null)}
         >
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-heading">Order Details</DialogTitle>
             </DialogHeader>

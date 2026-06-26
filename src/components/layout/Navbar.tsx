@@ -63,6 +63,9 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
+  // Transparent navbar over the dark home hero → use light text for contrast.
+  const overHero = pathname === "/" && !scrolled;
+
   return (
     <header
       className={cn(
@@ -89,7 +92,9 @@ export default function Navbar() {
                   "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   pathname.startsWith(link.href)
                     ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    : overHero
+                      ? "text-white/80 hover:text-white hover:bg-white/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                 )}
               >
                 {link.label}
@@ -102,7 +107,11 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-foreground"
+              className={
+                overHero
+                  ? "text-white/80 hover:text-white hover:bg-white/10"
+                  : "text-muted-foreground hover:text-foreground"
+              }
               asChild
             >
               <Link href="/search" aria-label="Search">
@@ -165,7 +174,11 @@ export default function Navbar() {
                   variant="ghost"
                   size="sm"
                   asChild
-                  className="text-muted-foreground"
+                  className={
+                    overHero
+                      ? "text-white/80 hover:text-white hover:bg-white/10"
+                      : "text-muted-foreground"
+                  }
                 >
                   <Link href="/auth/login">Sign in</Link>
                 </Button>
@@ -184,7 +197,14 @@ export default function Navbar() {
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
               render={
-                <Button variant="ghost" size="icon" className="md:hidden" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "md:hidden",
+                    overHero && "text-white hover:bg-white/10",
+                  )}
+                />
               }
             >
               <Menu className="w-5 h-5" />

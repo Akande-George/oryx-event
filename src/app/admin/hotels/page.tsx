@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -303,7 +303,7 @@ export default function AdminHotelsPage() {
           <Plus className="w-4 h-4" />{" "}
           <span className="hidden sm:inline">Create Hotel</span>
         </DialogTrigger>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Create New Hotel</DialogTitle>
           </DialogHeader>
@@ -375,14 +375,11 @@ export default function AdminHotelsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="hotel-desc">Description</Label>
-              <Textarea
-                id="hotel-desc"
-                placeholder="Describe the hotel…"
-                rows={3}
+              <Label>Description</Label>
+              <RichTextEditor
                 value={newHotel.description}
-                onChange={(e) =>
-                  setNewHotel({ ...newHotel, description: e.target.value })
+                onChange={(html) =>
+                  setNewHotel({ ...newHotel, description: html })
                 }
               />
             </div>
@@ -716,7 +713,7 @@ export default function AdminHotelsPage() {
 
       {/* Edit Hotel Dialog */}
       <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading">Edit Hotel</DialogTitle>
           </DialogHeader>
@@ -786,13 +783,11 @@ export default function AdminHotelsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-hotel-desc">Description</Label>
-              <Textarea
-                id="edit-hotel-desc"
-                rows={3}
+              <Label>Description</Label>
+              <RichTextEditor
                 value={editHotel.description}
-                onChange={(e) =>
-                  setEditHotel({ ...editHotel, description: e.target.value })
+                onChange={(html) =>
+                  setEditHotel({ ...editHotel, description: html })
                 }
               />
             </div>

@@ -1,231 +1,184 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Building2, Calendar } from "lucide-react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowRight,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+} from "lucide-react";
 
-const STYLE_ID = "oryx-hero-monochrome-animations";
+// Background slideshow — real Oryx photos from public/heros.
+const SLIDES = [
+  {
+    src: "/heros/626271946-18554852767007150-723259833772631068-n-picsart-aiimageenhancer.jpg",
+    caption: "Premium events across Qatar",
+  },
+  {
+    src: "/heros/hamad-airport-group.jpg",
+    caption: "Welcoming guests to Doha",
+  },
+  {
+    src: "/heros/villaggio-mall-009.jpg",
+    caption: "Curated group experiences",
+  },
+];
 
-function AnimatedGlyph() {
-  return (
-    <svg viewBox="0 0 120 120" className="h-14 w-14" aria-hidden>
-      <circle
-        cx="60"
-        cy="60"
-        r="52"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        className="motion-safe:animate-[oryx-hero-orbit_8s_linear_infinite] motion-reduce:animate-none"
-        style={{ strokeDasharray: "12 10" }}
-      />
-      <circle cx="60" cy="60" r="30" fill="currentColor" opacity="0.08" />
-      <path
-        d="M60 38v44"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="motion-safe:animate-[oryx-hero-trace_6s_ease-in-out_infinite] motion-reduce:animate-none"
-      />
-      <path
-        d="M42 60h36"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="motion-safe:animate-[oryx-hero-trace_6s_ease-in-out_infinite] motion-reduce:animate-none"
-        style={{ animationDelay: "0.45s" }}
-      />
-      <circle
-        cx="60"
-        cy="12"
-        r="6"
-        fill="currentColor"
-        className="motion-safe:animate-[oryx-hero-node_2.8s_ease-in-out_infinite] motion-reduce:animate-none"
-      />
-    </svg>
-  );
-}
+const AUTO_MS = 6000;
 
 export default function HeroMonochrome() {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [index, setIndex] = useState(0);
 
+  const go = useCallback(
+    (dir: number) =>
+      setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length),
+    [],
+  );
+
+  // Auto-advance.
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (document.getElementById(STYLE_ID)) return;
-
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.innerHTML = `
-      @keyframes oryx-hero-intro {
-        0% { opacity: 0; transform: translate3d(0, 40px, 0); }
-        100% { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      @keyframes oryx-hero-card {
-        0% { opacity: 0; transform: translate3d(0, 24px, 0); }
-        100% { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      @keyframes oryx-hero-orbit {
-        0% { stroke-dashoffset: 0; transform: rotate(0deg); }
-        100% { stroke-dashoffset: -44; transform: rotate(360deg); }
-      }
-      @keyframes oryx-hero-node {
-        0%, 100% { transform: translateY(0); opacity: 1; }
-        50% { transform: translateY(6px); opacity: 0.55; }
-      }
-      @keyframes oryx-hero-trace {
-        0%, 30% { stroke-dasharray: 0 160; opacity: 0; }
-        45%, 65% { stroke-dasharray: 160 0; opacity: 1; }
-        100% { stroke-dasharray: 0 160; opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      style.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!sectionRef.current || typeof window === "undefined") {
-      setVisible(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setVisible(true);
-            observer.disconnect();
-          }
-        });
-      },
-      { threshold: 0.2 },
-    );
-
-    observer.observe(sectionRef.current);
-    return () => observer.disconnect();
-  }, []);
+    const id = setInterval(() => setIndex((i) => (i + 1) % SLIDES.length), AUTO_MS);
+    return () => clearInterval(id);
+  }, [index]);
 
   return (
-    <section className="relative isolate overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(ellipse_65%_90%_at_12%_-10%,rgba(122,15,43,0.07),transparent_62%),radial-gradient(ellipse_45%_65%_at_88%_-20%,rgba(63,143,99,0.08),transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-70 [background-image:radial-gradient(circle_at_25%_25%,rgba(17,17,17,0.10)_0.7px,transparent_1px),radial-gradient(circle_at_75%_75%,rgba(17,17,17,0.06)_0.7px,transparent_1px)] [background-size:12px_12px]" />
+    <section className="relative min-h-screen w-full overflow-hidden bg-[#0d0708] font-sans text-white">
+      {/* Slides */}
+      {SLIDES.map((slide, i) => (
+        <div
+          key={slide.src}
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+            i === index ? "opacity-100" : "opacity-0"
+          }`}
+          aria-hidden={i !== index}
+        >
+          <Image
+            src={slide.src}
+            alt={slide.caption}
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+      ))}
 
-      <div className="pointer-events-none absolute -left-20 top-10 -z-10 h-72 w-72 rounded-full bg-primary/8 blur-3xl" />
-      <div className="pointer-events-none absolute right-0 top-28 -z-10 h-80 w-80 rounded-full bg-secondary/8 blur-3xl" />
+      {/* Overlays for legibility */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/30" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
 
-      <section
-        ref={sectionRef}
-        className={`relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-14 px-4 py-24 sm:px-6 lg:px-8 ${
-          visible
-            ? "motion-safe:animate-[oryx-hero-intro_0.9s_cubic-bezier(.25,.9,.3,1)_forwards]"
-            : "opacity-0"
-        }`}
+      {/* Brand colour washes */}
+      <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-primary/25 blur-3xl" />
+      <div className="pointer-events-none absolute right-0 top-40 h-80 w-80 rounded-full bg-secondary/20 blur-3xl" />
+
+      {/* Content */}
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-4 pt-28 pb-28 sm:px-6 lg:px-8">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 backdrop-blur-md">
+            <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-white/85 sm:text-xs">
+              Qatar&apos;s Leading Events &amp; Tourism Company
+              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+            </span>
+          </div>
+
+          <h1 className="mt-6 font-heading text-5xl font-semibold leading-[0.98] tracking-tight sm:text-6xl lg:text-7xl">
+            Crafting Unforgettable
+            <br />
+            <span className="bg-gradient-to-br from-white via-white to-secondary bg-clip-text text-transparent">
+              Experiences
+            </span>{" "}
+            Across Qatar
+          </h1>
+
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-white/75 md:text-lg">
+            From premium events to curated stays, we deliver experiences aligned
+            with Qatar National Vision 2030 — designed to delight every guest and
+            elevate every moment.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+            <Link
+              href="/events"
+              className="group inline-flex items-center justify-center gap-2 rounded-full gradient-primary px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Explore Events
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/hotels"
+              className="group inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-8 py-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            >
+              <Building2 className="h-4 w-4" />
+              Browse Hotels
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation arrows */}
+      <button
+        type="button"
+        onClick={() => go(-1)}
+        aria-label="Previous slide"
+        className="absolute left-3 top-1/2 z-20 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50 sm:left-6"
       >
-        <header className="grid gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:items-end">
-          <div className="space-y-8">
-            <div className="flex items-center gap-4 text-xs uppercase tracking-[0.35em]">
-              <span className="rounded-full border border-border bg-card/80 px-4 py-1 text-foreground/80 backdrop-blur-sm">
-                Premium Events & Stays
-              </span>
-              <span className="text-muted-foreground">Hero / Monochrome</span>
-            </div>
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => go(1)}
+        aria-label="Next slide"
+        className="absolute right-3 top-1/2 z-20 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50 sm:right-6"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
 
-            <div className="space-y-6">
-              <h1 className="font-heading text-5xl font-semibold leading-[0.96] tracking-tight text-foreground sm:text-6xl lg:text-7xl xl:text-8xl">
-                Where great
-                <br />
-                moments begin
-                <br />
-                with clarity.
-              </h1>
-              <p className="max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
-                Discover refined event experiences, premium hotel stays, and a
-                calmer booking flow designed to feel editorial, trustworthy, and
-                unmistakably modern.
-              </p>
-            </div>
+      {/* Caption + dots */}
+      <div className="absolute inset-x-0 bottom-8 z-20 flex flex-col items-center gap-3">
+        <p className="text-xs uppercase tracking-[0.3em] text-white/60">
+          {SLIDES[index].caption}
+        </p>
+        <div className="flex items-center gap-2">
+          {SLIDES.map((s, i) => (
+            <button
+              key={s.src}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all ${
+                i === index ? "w-8 bg-white" : "w-2.5 bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link
-                href="/events"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-              >
-                Explore events
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/hotels"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card/80 px-6 py-3 text-sm font-semibold text-foreground transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card"
-              >
-                <Building2 className="h-4 w-4" />
-                Browse hotels
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative flex w-full items-stretch overflow-hidden rounded-[2rem] border border-border bg-card/90 shadow-[0_40px_120px_-60px_rgba(15,15,15,0.22)] backdrop-blur-xl">
-            <div className="absolute inset-0 -z-10 rounded-[2rem] bg-muted/40" />
-            <figure className="relative flex w-full flex-col">
-              <div className="relative w-full overflow-hidden rounded-t-[2rem]">
-                <div className="relative w-full pb-[110%] md:pb-[82%] lg:pb-[112%]">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center grayscale"
-                    style={{
-                      backgroundImage:
-                        "url(https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1400&q=80)",
-                    }}
-                  />
-                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/8" />
-                  <div className="pointer-events-none absolute inset-0 border border-black/5" />
-
-                  <div className="absolute left-6 top-6 flex h-14 w-14 items-center justify-center rounded-full border border-black/10 bg-white/70 text-foreground shadow-sm backdrop-blur-sm">
-                    <AnimatedGlyph />
-                  </div>
-
-                  <div className="absolute bottom-6 left-6 right-6 rounded-3xl border border-white/60 bg-white/72 p-5 shadow-lg backdrop-blur-md">
-                    <div className="mb-5 flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-heading text-2xl font-bold text-foreground">
-                          500+
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Events hosted
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Guest satisfaction
-                        </span>
-                        <span className="font-medium text-foreground">98%</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full w-[98%] rounded-full bg-gradient-to-r from-primary to-secondary" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <figcaption className="flex items-center justify-between px-6 py-5 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                <span>Editorial booking</span>
-                <span className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Oryx launch canvas
-                </span>
-              </figcaption>
-            </figure>
-          </div>
-        </header>
-      </section>
+      {/* Rotating accent ring */}
+      <div className="pointer-events-none absolute bottom-8 right-6 z-20 hidden h-20 w-20 items-center justify-center sm:flex">
+        <span className="absolute inset-0 m-auto h-2 w-2 rounded-full bg-secondary" />
+        <motion.svg
+          viewBox="0 0 100 100"
+          className="h-full w-full"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+        >
+          <defs>
+            <path
+              id="oryx-ring"
+              d="M 50,50 m -36,0 a 36,36 0 1,1 72,0 a 36,36 0 1,1 -72,0"
+            />
+          </defs>
+          <text className="fill-white/70 text-[8px] uppercase tracking-[0.2em]">
+            <textPath href="#oryx-ring" startOffset="0%">
+              Oryx Group · Est. 2019 · Doha · Qatar ·
+            </textPath>
+          </text>
+        </motion.svg>
+      </div>
     </section>
   );
 }

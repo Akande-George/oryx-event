@@ -1,58 +1,62 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
-  Calendar,
-  ChevronRight,
-  Shield,
-  Users,
-  Zap,
+  Building2,
+  CalendarDays,
+  Clock,
+  MapPin,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import AnimatedEventGrid from "@/components/events/AnimatedEventGrid";
 import HeroMonochrome from "@/components/ui/hero-monochrome";
-import { getEvents, getCategories } from "@/lib/supabase/queries";
+import EventsShowcase from "@/components/home/EventsShowcase";
+import PlanYourVisit from "@/components/home/PlanYourVisit";
+import { DestinationCard } from "@/components/ui/card-21";
+import { getEvents } from "@/lib/supabase/queries";
+import { formatDate, formatTime, stripHtml } from "@/lib/utils";
 
-
-const stats = [
-  { label: "Events Hosted", value: "500+", icon: Calendar },
-  { label: "Happy Attendees", value: "50K+", icon: Users },
-  { label: "Verified Organizers", value: "120+", icon: Shield },
-  { label: "Cities Covered", value: "12", icon: Zap },
+// "Trending now" destination cards (themeColor = HSL triplet, on-brand).
+const TRENDING = [
+  {
+    location: "Live Events",
+    flag: "🎤",
+    href: "/events",
+    image:
+      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
+    themeColor: "345 65% 26%", // brand maroon
+  },
+  {
+    location: "Hotels & Stays",
+    flag: "🏨",
+    href: "/hotels",
+    image:
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    themeColor: "150 45% 24%", // brand green
+  },
+  {
+    location: "Explore Qatar",
+    flag: "🇶🇦",
+    href: "/events",
+    image:
+      "https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80",
+    themeColor: "35 55% 30%", // warm desert gold
+  },
 ];
 
-const CATEGORY_COLORS = [
-  "from-primary/20 to-primary/5",
-  "from-secondary/20 to-secondary/5",
-  "from-accent/30 to-accent/10",
-  "from-primary/15 to-primary/5",
-  "from-secondary/15 to-secondary/5",
-  "from-accent/20 to-accent/5",
-];
 
 export default async function HomePage() {
   let allEvents: Awaited<ReturnType<typeof getEvents>> = [];
-  let dbCategories: Awaited<ReturnType<typeof getCategories>> = [];
-
   try {
-    [allEvents, dbCategories] = await Promise.all([
-      getEvents(),
-      getCategories(),
-    ]);
+    allEvents = await getEvents();
   } catch {
     // Supabase not reachable.
   }
 
-  const upcomingEvents = allEvents.slice(0, 3);
-
-  // Derive real event counts per category
-  const categories = dbCategories.slice(0, 6).map((cat, i) => ({
-    label: cat.name,
-    emoji: cat.emoji,
-    count: allEvents.filter((e) => e.category === cat.name).length,
-    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-  }));
+  const featured =
+    allEvents.find((e) => e.is_featured) ?? allEvents[0] ?? null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,131 +65,182 @@ export default async function HomePage() {
       {/* ── Hero ─────────────────────────────────────────── */}
       <HeroMonochrome />
 
-      {/* ── Stats ─────────────────────────────────────────── */}
-      <section className="py-16 border-y border-border bg-muted/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map(({ label, value, icon: Icon }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center text-center gap-2"
+      {/* ── Featured spotlight ───────────────────────────── */}
+      {featured && (
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid items-center gap-10 lg:grid-cols-2">
+              <Link
+                href={`/events/${featured.id}`}
+                className="group relative aspect-[4/3] overflow-hidden rounded-3xl"
               >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <p className="font-heading font-bold text-3xl text-foreground">
-                  {value}
+                <Image
+                  src={featured.image_url}
+                  alt={featured.title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </Link>
+
+              <div>
+                <p className="mb-2 text-sm font-medium uppercase tracking-widest text-secondary">
+                  Featured Experience
                 </p>
-                <p className="text-sm text-muted-foreground">{label}</p>
+                <h2 className="font-heading text-3xl font-bold text-foreground sm:text-4xl">
+                  {featured.title}
+                </h2>
+                <p className="mt-4 max-w-lg leading-relaxed text-muted-foreground line-clamp-3">
+                  {stripHtml(featured.description)}
+                </p>
+
+                <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
+                  {[
+                    {
+                      icon: MapPin,
+                      label: featured.venue,
+                      sub: featured.location,
+                    },
+                    {
+                      icon: CalendarDays,
+                      label: formatDate(featured.date),
+                      sub: "Date",
+                    },
+                    {
+                      icon: Clock,
+                      label: formatTime(featured.date),
+                      sub: "Doors open",
+                    },
+                  ].map(({ icon: Icon, label, sub }, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {label}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {sub}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Button asChild className="gradient-primary border-0 text-white gap-2">
+                    <Link href={`/events/${featured.id}`}>
+                      Book now <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild className="gap-2">
+                    <a href="tel:+97444931726">
+                      <Phone className="h-4 w-4" /> +974 4493 1726
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Trending now (arch cards) ────────────────────── */}
+      <section className="bg-muted/30 py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 text-center">
+            <h2 className="font-heading text-3xl font-bold text-secondary sm:text-4xl">
+              Trending now in Qatar
+            </h2>
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
+              Discover Qatar&apos;s latest events, premium stays and curated
+              experiences across the country.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {TRENDING.map((card) => (
+              <div key={card.location} className="h-96">
+                <DestinationCard
+                  imageUrl={card.image}
+                  location={card.location}
+                  flag={card.flag}
+                  href={card.href}
+                  themeColor={card.themeColor}
+                  stats={
+                    card.location === "Live Events"
+                      ? `${allEvents.length} events available`
+                      : card.location === "Hotels & Stays"
+                        ? "Premium hotels & curated stays"
+                        : "Tours, concierge & experiences"
+                  }
+                />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Browse by Category ─────────────────────────────── */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
-                Discover
-              </p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">
-                Browse by Category
-              </h2>
-            </div>
-            <Link
-              href="/events"
-              className="hidden sm:flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              All events <ChevronRight className="w-4 h-4" />
-            </Link>
+      {/* ── Events grid (tabbed) ─────────────────────────── */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h2 className="font-heading text-3xl font-bold text-secondary sm:text-4xl">
+              Events to keep you at the edge of your seat
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Our events calendar is bursting with surprises — whatever your
+              interest, you don&apos;t want to miss out.
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((cat) => (
-              <Link
-                key={cat.label}
-                href={`/events?category=${encodeURIComponent(cat.label)}`}
-                className={`bg-gradient-to-br ${cat.color} border border-border/50 rounded-2xl p-5 text-center hover:border-primary/40 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg group`}
-              >
-                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">
-                  {cat.emoji}
-                </div>
-                <p className="font-heading font-semibold text-sm text-foreground">
-                  {cat.label}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {cat.count} events
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+          <EventsShowcase events={allEvents} />
 
-      {/* ── Upcoming Events ────────────────────────────────── */}
-      <section className="py-20 bg-muted/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
-                Coming Soon
-              </p>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">
-                Upcoming Events
-              </h2>
-            </div>
-            <Button
-              variant="outline"
-              asChild
-              className="hidden sm:flex border-border/50 gap-1"
-            >
+          <div className="mt-10 flex justify-center">
+            <Button variant="outline" asChild className="gap-2">
               <Link href="/events">
-                View all <ArrowRight className="w-4 h-4" />
+                See all events <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </div>
-
-          <AnimatedEventGrid
-            events={upcomingEvents}
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
-          />
         </div>
       </section>
 
-      {/* ── CTA Banner ────────────────────────────────────── */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Plan your visit ──────────────────────────────── */}
+      <PlanYourVisit />
+
+      {/* ── CTA banner ───────────────────────────────────── */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-3xl gradient-primary p-12 text-center">
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 left-1/4 w-64 h-64 bg-white rounded-full blur-3xl" />
-              <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-white rounded-full blur-3xl" />
+              <div className="absolute left-1/4 top-0 h-64 w-64 rounded-full bg-white blur-3xl" />
+              <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-white blur-3xl" />
             </div>
             <div className="relative">
-              <h2 className="font-heading font-bold text-4xl text-white mb-4">
-                Ready to host your event?
+              <h2 className="mb-4 font-heading text-4xl font-bold text-white">
+                Ready to experience Qatar?
               </h2>
-              <p className="text-white/80 mb-8 max-w-md mx-auto">
-                Reach thousands of eager attendees. Create your event page in
-                minutes.
+              <p className="mx-auto mb-8 max-w-md text-white/80">
+                Browse events, book premium stays, and let Oryx handle the
+                details.
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 <Button
                   size="lg"
-                  className="bg-white text-primary hover:bg-white/90 font-semibold shadow-xl"
+                  className="bg-white font-semibold text-primary shadow-xl hover:bg-white/90"
                   asChild
                 >
-                  <Link href="/admin">Create Event</Link>
+                  <Link href="/events">Browse Events</Link>
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10"
+                  className="border-white/30 text-white hover:bg-white/10 gap-2"
                   asChild
                 >
-                  <Link href="/events">Browse Events</Link>
+                  <Link href="/hotels">
+                    <Building2 className="h-4 w-4" /> Find Hotels
+                  </Link>
                 </Button>
               </div>
             </div>

@@ -33,7 +33,7 @@ import Footer from "@/components/layout/Footer";
 import HotelCard from "@/components/hotels/HotelCard";
 import { createClient } from "@/lib/supabase/client";
 import { Hotel } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml } from "@/lib/utils";
 
 const RATINGS = [5, 4, 3];
 
@@ -95,7 +95,7 @@ export default function HotelsPage() {
       nextHotels = nextHotels.filter(
         (h) =>
           h.name.toLowerCase().includes(q) ||
-          h.description.toLowerCase().includes(q) ||
+          stripHtml(h.description).toLowerCase().includes(q) ||
           h.location.toLowerCase().includes(q),
       );
     }
