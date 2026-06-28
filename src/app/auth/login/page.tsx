@@ -63,7 +63,7 @@ function LoginForm() {
           </h2>
           <p className="text-white/70 text-lg leading-relaxed">
             Sign in to access your tickets, manage bookings, and discover new
-            events across Qatar and Africa.
+            events across Qatar.
           </p>
         </div>
       </div>

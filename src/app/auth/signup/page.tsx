@@ -66,7 +66,7 @@ export default function SignupPage() {
           </h2>
           <p className="text-white/70 text-base leading-relaxed mb-8">
             Join thousands discovering and booking premium experiences across
-            Qatar and Africa.
+            Qatar.
           </p>
           <div className="grid grid-cols-3 gap-4 text-center">
             {[

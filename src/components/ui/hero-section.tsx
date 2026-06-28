@@ -71,8 +71,8 @@ export default function HeroSection() {
             {/* Description */}
             <p className="animate-fade-up [animation-delay:0.3s] max-w-xl text-lg text-muted-foreground leading-relaxed">
               From exclusive galas to landmark stadium nights — discover the
-              finest events across Qatar and Africa, and let us arrange the
-              perfect stay to match.
+              finest events across Qatar, and let us arrange the perfect stay to
+              match.
             </p>
 
             {/* CTAs */}

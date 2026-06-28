@@ -22,7 +22,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Oryx Group | Premium Event Management",
   description:
-    "Discover and manage premium events with Oryx Group across Qatar and Africa. The bridge between elegance and experience.",
+    "Discover and manage premium events with Oryx Group across Qatar. The bridge between elegance and experience.",
 };
 
 export default function RootLayout({

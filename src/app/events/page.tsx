@@ -37,7 +37,7 @@ import { Event } from "@/types";
 import { cn, stripHtml } from "@/lib/utils";
 import { useCategories } from "@/hooks/useCategories";
 
-const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan", "Abuja"];
+const LOCATIONS = ["Doha", "Lusail", "Al Wakrah", "Al Khor", "Dukhan"];
 
 const SORT_OPTIONS = [
   { value: "date-asc", label: "Date: Soonest" },
@@ -205,11 +205,11 @@ export default function EventsPage() {
         image="/homeslides/Music-event-concert.jpg"
         title={
           <>
-            What&apos;s on in <span className="italic text-secondary">Qatar</span>
-            .
+            What&apos;s on in{" "}
+            <span className="italic text-secondary">Qatar</span>.
           </>
         }
-        subtitle="Explore hand-picked experiences across Qatar and Africa. Filter by category, location or date to find your perfect event."
+        subtitle="Explore hand-picked experiences across Qatar. Filter by category, location or date to find your perfect event."
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

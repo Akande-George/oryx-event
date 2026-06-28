@@ -143,12 +143,12 @@ export default function Footer() {
             <Link href="/" className="mb-4 inline-flex items-center gap-2">
               <Image src="/logo.png" alt="Oryx Group" width={32} height={32} />
               <span className="font-heading text-lg font-bold">
-                Oryx<span className="text-primary">.</span>
+                Oryx Group<span className="text-primary">.</span>
               </span>
             </Link>
             <p className="mb-5 max-w-xs text-sm leading-relaxed text-white/60">
               The bridge between elegance and experience. Discover, book, and
-              manage premium events across Qatar and Africa.
+              manage premium events across Qatar.
             </p>
             <div className="flex items-center gap-2.5">
               {SOCIAL_LINKS.map(({ label, href, Icon }) => (

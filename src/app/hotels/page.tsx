@@ -83,8 +83,7 @@ export default function HotelsPage() {
   // Cities are derived from the live hotel data, so adding a hotel in a new
   // city automatically adds it as a filter option — no hardcoded list.
   const CITIES = useMemo(
-    () =>
-      Array.from(new Set(hotels.map((h) => h.city).filter(Boolean))).sort(),
+    () => Array.from(new Set(hotels.map((h) => h.city).filter(Boolean))).sort(),
     [hotels],
   );
 
@@ -209,11 +208,11 @@ export default function HotelsPage() {
         image="/hotelsbanner.jpeg"
         title={
           <>
-            Where you{" "}
-            <span className="italic text-secondary">stay</span> matters.
+            Where you <span className="italic text-secondary">stay</span>{" "}
+            matters.
           </>
         }
-        subtitle="Browse hand-picked hotels across Qatar and Africa. Choose your preferred dates and room, and our team will arrange the booking on your behalf."
+        subtitle="Browse hand-picked hotels across Qatar. Choose your preferred dates and room, and our team will arrange the booking on your behalf."
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
