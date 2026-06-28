@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
+import PageBanner from "@/components/layout/PageBanner";
 import Footer from "@/components/layout/Footer";
 import HotelCard from "@/components/hotels/HotelCard";
 import { createClient } from "@/lib/supabase/client";
@@ -202,22 +203,18 @@ export default function HotelsPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Page header */}
-      <div className="pt-28 pb-10 bg-white border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
-            Stays
-          </p>
-          <h1 className="font-heading font-bold text-4xl sm:text-5xl text-foreground mb-4">
-            Hotels &amp; Stays
-          </h1>
-          <p className="text-muted-foreground max-w-xl">
-            Browse hand-picked hotels across Qatar and Africa. Choose your
-            preferred dates and room, and our team will arrange the booking on
-            your behalf.
-          </p>
-        </div>
-      </div>
+      {/* Page banner */}
+      <PageBanner
+        eyebrow="Hotels & Stays"
+        image="/hotelsbanner.jpeg"
+        title={
+          <>
+            Where you{" "}
+            <span className="italic text-secondary">stay</span> matters.
+          </>
+        }
+        subtitle="Browse hand-picked hotels across Qatar and Africa. Choose your preferred dates and room, and our team will arrange the booking on your behalf."
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search & Sort bar */}

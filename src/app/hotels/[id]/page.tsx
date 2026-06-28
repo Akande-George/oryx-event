@@ -133,8 +133,8 @@ export default function HotelDetailPage({
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Hero gallery */}
-      <div className="relative h-[50vh] min-h-[360px] max-h-[520px] overflow-hidden">
+      {/* Hero banner */}
+      <div className="relative flex min-h-[460px] items-end overflow-hidden">
         <Image
           src={gallery[0]}
           alt={hotel.name}
@@ -142,6 +142,34 @@ export default function HotelDetailPage({
           className="object-cover"
           priority
         />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+
+        {/* Banner title */}
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-32 sm:px-6 lg:px-8">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="h-2 w-2 rotate-45 bg-secondary" />
+            <span className="h-px w-10 bg-white/40" />
+            <span className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
+              {hotel.city}
+            </span>
+            <span className="flex items-center gap-0.5">
+              {Array.from({ length: hotel.star_rating }).map((_, i) => (
+                <Star
+                  key={i}
+                  className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400"
+                />
+              ))}
+            </span>
+          </div>
+          <h1 className="font-heading max-w-3xl text-4xl font-bold leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-6xl">
+            {hotel.name}
+          </h1>
+          <p className="mt-3 flex items-center gap-2 text-sm text-white/75">
+            <MapPin className="h-4 w-4 shrink-0" /> {hotel.address}
+          </p>
+        </div>
+
         {/* Back button */}
         <div className="absolute top-20 left-4 sm:left-8">
           <Button
@@ -193,35 +221,6 @@ export default function HotelDetailPage({
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main */}
           <div className="lg:col-span-2">
-            {/* Header */}
-            <div className="mb-8">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <Badge className="bg-primary/20 text-primary border-primary/30 gap-1">
-                  <MapPin className="w-3 h-3" /> {hotel.city}
-                </Badge>
-                <div className="flex items-center gap-0.5 rounded-full bg-yellow-500/10 px-2 py-1">
-                  {Array.from({ length: hotel.star_rating }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-3 h-3 text-yellow-500 fill-yellow-500"
-                    />
-                  ))}
-                </div>
-                {hotel.is_featured && (
-                  <Badge className="bg-secondary/20 text-secondary border-secondary/30">
-                    Featured
-                  </Badge>
-                )}
-              </div>
-              <h1 className="font-heading font-bold text-3xl sm:text-4xl text-foreground mb-3 leading-tight">
-                {hotel.name}
-              </h1>
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4 text-accent shrink-0" />{" "}
-                {hotel.address}
-              </p>
-            </div>
-
             {gallery.length > 1 && (
               <div className="mb-8">
                 <h2 className="font-heading font-bold text-lg text-foreground mb-3">

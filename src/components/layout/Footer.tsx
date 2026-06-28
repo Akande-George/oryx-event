@@ -204,6 +204,12 @@ export default function Footer() {
                     +974 4493 1726
                   </a>
                 </p>
+                <p className="mt-1.5 flex items-center gap-2">
+                  <Phone className="h-3.5 w-3.5 shrink-0 text-secondary" />
+                  <a href="tel:+97439998609" className="hover:text-white">
+                    +974 3999 8609
+                  </a>
+                </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 transition-colors hover:border-white/20">

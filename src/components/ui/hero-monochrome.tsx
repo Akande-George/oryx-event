@@ -12,19 +12,27 @@ import {
   Star,
 } from "lucide-react";
 
-// Background slideshow — real Oryx photos from public/heros.
+// Background slideshow — photos from public/homeslides.
 const SLIDES = [
   {
-    src: "/heros/626271946-18554852767007150-723259833772631068-n-picsart-aiimageenhancer.jpg",
-    caption: "Premium events across Qatar",
+    src: "/homeslides/world-cup-festival-2022-doha-corniche.jpg",
+    caption: "Festivals on the Doha Corniche",
   },
   {
-    src: "/heros/hamad-airport-group.jpg",
-    caption: "Welcoming guests to Doha",
+    src: "/homeslides/Music-event-concert.jpg",
+    caption: "Live music & concerts",
   },
   {
-    src: "/heros/villaggio-mall-009.jpg",
-    caption: "Curated group experiences",
+    src: "/homeslides/p1.jpg",
+    caption: "Curated experiences across Qatar",
+  },
+  {
+    src: "/homeslides/p3.jpg",
+    caption: "Premium events & gatherings",
+  },
+  {
+    src: "/homeslides/Screenshot-2024-10-24-at-10.29.41%20AM.jpg",
+    caption: "Unforgettable moments",
   },
 ];
 

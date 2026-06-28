@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/layout/Navbar";
+import PageBanner from "@/components/layout/PageBanner";
 import Footer from "@/components/layout/Footer";
 import EventCard from "@/components/events/EventCard";
 import { createClient } from "@/lib/supabase/client";
@@ -198,21 +199,18 @@ export default function EventsPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Page header */}
-      <div className="pt-28 pb-10 bg-white border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-primary text-sm font-medium mb-2 uppercase tracking-widest">
-            Discover
-          </p>
-          <h1 className="font-heading font-bold text-4xl sm:text-5xl text-foreground mb-4">
-            All Events
-          </h1>
-          <p className="text-muted-foreground max-w-xl">
-            Explore hand-picked experiences across Qatar and Africa. Filter by
-            category, location or date to find your perfect event.
-          </p>
-        </div>
-      </div>
+      {/* Page banner */}
+      <PageBanner
+        eyebrow="Events"
+        image="/homeslides/Music-event-concert.jpg"
+        title={
+          <>
+            What&apos;s on in <span className="italic text-secondary">Qatar</span>
+            .
+          </>
+        }
+        subtitle="Explore hand-picked experiences across Qatar and Africa. Filter by category, location or date to find your perfect event."
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search & Sort bar */}

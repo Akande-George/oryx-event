@@ -63,8 +63,12 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // Transparent navbar over the dark home hero → use light text for contrast.
-  const overHero = pathname === "/" && !scrolled;
+  // Transparent navbar over a dark image hero/banner → use light text.
+  const overHero =
+    !scrolled &&
+    (pathname === "/" ||
+      pathname.startsWith("/events") ||
+      pathname.startsWith("/hotels"));
 
   return (
     <header

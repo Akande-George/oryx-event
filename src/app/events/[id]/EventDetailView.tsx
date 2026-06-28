@@ -78,7 +78,7 @@ export default function EventDetailView({
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="relative h-[50vh] min-h-[360px] max-h-[520px] overflow-hidden">
+      <div className="relative flex min-h-[460px] items-end overflow-hidden">
         <Image
           src={event.image_url}
           alt={event.title}
@@ -87,6 +87,27 @@ export default function EventDetailView({
           sizes="100vw"
           priority
         />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+
+        {/* Banner title */}
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-32 sm:px-6 lg:px-8">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="h-2 w-2 rotate-45 bg-secondary" />
+            <span className="h-px w-10 bg-white/40" />
+            <span className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
+              {event.category}
+            </span>
+            {event.is_featured && (
+              <span className="rounded-full bg-secondary/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-secondary">
+                Featured
+              </span>
+            )}
+          </div>
+          <h1 className="font-heading max-w-3xl text-4xl font-bold leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-6xl">
+            {event.title}
+          </h1>
+        </div>
 
         <div className="absolute top-20 left-4 sm:left-8">
           <Button
@@ -135,19 +156,6 @@ export default function EventDetailView({
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <div className="mb-8">
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge className="bg-primary/20 text-primary border-primary/30">
-                  {event.category}
-                </Badge>
-                {event.is_featured && (
-                  <Badge className="bg-secondary/20 text-secondary border-secondary/30">
-                    Featured
-                  </Badge>
-                )}
-              </div>
-              <h1 className="font-heading font-bold text-3xl sm:text-4xl text-foreground mb-5 leading-tight">
-                {event.title}
-              </h1>
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
                   {

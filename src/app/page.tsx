@@ -24,24 +24,21 @@ const TRENDING = [
     location: "Live Events",
     flag: "🎤",
     href: "/events",
-    image:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80",
+    image: "/liveevents.jpeg",
     themeColor: "345 65% 26%", // brand maroon
   },
   {
     location: "Hotels & Stays",
     flag: "🏨",
     href: "/hotels",
-    image:
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    image: "/hotelstays.jpeg",
     themeColor: "150 45% 24%", // brand green
   },
   {
     location: "Explore Qatar",
     flag: "🇶🇦",
     href: "/events",
-    image:
-      "https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80",
+    image: "/exploreqatar.jpeg",
     themeColor: "35 55% 30%", // warm desert gold
   },
 ];
